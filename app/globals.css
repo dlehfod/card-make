@@ -1,0 +1,61 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap');
+@import "tailwindcss";
+
+:root {
+  --color-ivory: #FAF8F5;
+  --color-beige: #F0EBE3;
+  --color-beige-dark: #E4DDD3;
+  --color-brown: #8B7355;
+  --color-brown-dark: #6B5640;
+  --color-charcoal: #3C3633;
+  --color-charcoal-light: #5C5551;
+  --color-warm-white: #FFFCF8;
+  --color-gold: #C9A96E;
+  --color-gold-light: #E8D5A8;
+}
+
+@theme inline {
+  --color-ivory: var(--color-ivory);
+  --color-beige: var(--color-beige);
+  --color-beige-dark: var(--color-beige-dark);
+  --color-brown: var(--color-brown);
+  --color-brown-dark: var(--color-brown-dark);
+  --color-charcoal: var(--color-charcoal);
+  --color-charcoal-light: var(--color-charcoal-light);
+  --color-warm-white: var(--color-warm-white);
+  --color-gold: var(--color-gold);
+  --color-gold-light: var(--color-gold-light);
+  --font-sans: 'Noto Sans KR', sans-serif;
+  --font-serif: 'Cormorant Garamond', serif;
+}
+
+body {
+  background: var(--color-ivory);
+  color: var(--color-charcoal);
+  font-family: 'Noto Sans KR', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-beige);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-beige-dark);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-brown);
+}
+
+/* Focus styles */
+input:focus,
+textarea:focus,
+select:focus {
+  outline: 2px solid var(--color-gold);
+  outline-offset: 1px;
+}
