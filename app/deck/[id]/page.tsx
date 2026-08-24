@@ -649,18 +649,22 @@ export default function DeckPage() {
                             </div>
                           )}
 
-                          {/* Notes (Image Description) */}
-                          {card.notes && (
-                            <div className="bg-gradient-to-br from-[#FAF7EE] to-[#F5EEE6] p-4 rounded-2xl border-2 border-brown/30 shadow-xs">
-                              <h4 className="text-xs font-bold text-brown-dark tracking-wide mb-1.5 flex items-center gap-1.5">
-                                <span>🖼️ 카드 이미지 설명</span>
-                                <span className="text-[10px] font-normal text-brown/70">(비주얼 / 프롬프트)</span>
-                              </h4>
+                          {/* Notes (Image Description) - Always Show */}
+                          <div className="bg-gradient-to-br from-[#FAF7EE] to-[#F5EEE6] p-4 rounded-2xl border-2 border-brown/30 shadow-xs">
+                            <h4 className="text-xs font-bold text-brown-dark tracking-wide mb-1.5 flex items-center gap-1.5">
+                              <span>🖼️ 카드 이미지 설명</span>
+                              <span className="text-[10px] font-normal text-brown/70">(비주얼 / 프롬프트)</span>
+                            </h4>
+                            {card.notes ? (
                               <p className="text-sm text-charcoal font-medium leading-relaxed whitespace-pre-wrap">
                                 {card.notes}
                               </p>
-                            </div>
-                          )}
+                            ) : (
+                              <p className="text-xs text-charcoal-light/60 italic">
+                                작성된 설명이 없습니다. (수정 버튼을 눌러 작성해주세요)
+                              </p>
+                            )}
+                          </div>
 
                           {/* Image Section (Upload & Preview) */}
                           <div className="bg-[#FAF8F5] p-4 rounded-2xl border border-brown/30 shadow-2xs space-y-3">
