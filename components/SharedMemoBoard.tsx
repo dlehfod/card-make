@@ -144,7 +144,7 @@ export default function SharedMemoBoard() {
 
   // Clear Doyoung note
   const handleClearDoyoung = async () => {
-    if (window.confirm('도영의 메모를 지우고 새로 작성하시겠습니까?')) {
+    if (window.confirm('이도영(점술신)의 메모를 지우고 새로 작성하시겠습니까?')) {
       setDoyoungNote('');
       await saveDoyoung('');
     }
@@ -152,7 +152,7 @@ export default function SharedMemoBoard() {
 
   // Clear Hyojae note
   const handleClearHyojae = async () => {
-    if (window.confirm('효재의 메모를 지우고 새로 작성하시겠습니까?')) {
+    if (window.confirm('양효재(로율)의 메모를 지우고 새로 작성하시겠습니까?')) {
       setHyojaeNote('');
       await saveHyojae('');
     }
@@ -178,7 +178,7 @@ export default function SharedMemoBoard() {
               두 타로마스터의 소통 메모
             </h3>
             <p className="text-[11px] text-charcoal-light">
-              점술신(도영) & 양효재의 실시간 남김글
+              이도영(점술신) & 양효재(로율)의 실시간 남김글
             </p>
           </div>
         </div>
@@ -194,7 +194,7 @@ export default function SharedMemoBoard() {
       {isOpen && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-4 pt-4 border-t border-beige-dark/30 animate-in fade-in duration-200">
           
-          {/* 1. LEFT: 점술신 (도영) */}
+          {/* 1. LEFT: 이도영 (점술신) */}
           <div className="bg-gradient-to-b from-[#FAF6EE] to-warm-white border border-brown/30 rounded-2xl p-4 shadow-xs flex flex-col justify-between">
             <div>
               {/* Profile Header */}
@@ -203,16 +203,16 @@ export default function SharedMemoBoard() {
                   <div className="w-11 h-11 rounded-full overflow-hidden border-2 border-gold/60 shadow-xs shrink-0 ring-1 ring-brown/20">
                     <img
                       src="/master_doyoung.jpg"
-                      alt="점술신"
+                      alt="이도영(점술신)"
                       className="w-full h-full object-cover"
                     />
                   </div>
                   <div>
                     <div className="flex items-center gap-1.5">
-                      <span className="text-sm font-bold text-charcoal">점술신 (도영)</span>
+                      <span className="text-sm font-bold text-charcoal">이도영 (점술신)</span>
                     </div>
                     <p className="text-[11px] text-brown-dark font-medium">
-                      효재에게 남기는 말
+                      양효재(로율)에게 남기는 말
                     </p>
                   </div>
                 </div>
@@ -222,14 +222,14 @@ export default function SharedMemoBoard() {
                   {doyoungNote.trim() ? (
                     doyoungReadByHyojae ? (
                       <div className="text-[10px] bg-emerald-100 text-emerald-800 border border-emerald-300 px-2 py-0.5 rounded-lg font-bold flex flex-col items-center text-center leading-tight shadow-2xs whitespace-nowrap">
-                        <span>효재 읽음</span>
+                        <span>로율 읽음</span>
                         <span className="text-[9px] text-emerald-700/80 font-normal">
                           {doyoungReadAt ? `(${formatReadTime(doyoungReadAt)})` : ''}
                         </span>
                       </div>
                     ) : (
                       <div className="text-[10px] bg-amber-100 text-amber-800 border border-amber-300 px-2 py-1 rounded-lg font-bold flex items-center justify-center text-center whitespace-nowrap">
-                        <span>효재 미확인</span>
+                        <span>로율 미확인</span>
                       </div>
                     )
                   ) : null}
@@ -240,15 +240,15 @@ export default function SharedMemoBoard() {
               <textarea
                 value={doyoungNote}
                 onChange={(e) => setDoyoungNote(e.target.value)}
-                placeholder="도영님이 효재님에게 전할 말을 자유롭게 적어두세요..."
+                placeholder="이도영(점술신)님이 양효재(로율)님에게 전할 말을 자유롭게 적어두세요..."
                 rows={4}
                 className="w-full p-3 bg-white/90 border border-beige-dark/70 rounded-xl text-xs text-charcoal resize-none placeholder:text-charcoal-light/40 leading-relaxed focus:bg-white transition-all shadow-2xs"
               />
             </div>
 
-            {/* Bottom Actions - 2-row layout with ZERO overflow */}
+            {/* Bottom Actions */}
             <div className="mt-3 pt-2.5 border-t border-beige-dark/30 space-y-2">
-              {/* Row 1: Check Button (Full width or prominent) */}
+              {/* Row 1: Check Button */}
               <button
                 type="button"
                 onClick={toggleHyojaeRead}
@@ -260,9 +260,9 @@ export default function SharedMemoBoard() {
                     ? 'bg-emerald-50 text-emerald-700 border-emerald-300 shadow-2xs'
                     : 'bg-warm-white text-charcoal border-beige-dark/70 hover:bg-beige'
                 }`}
-                title="효재가 이 메모를 확인했는지 누르는 버튼입니다"
+                title="양효재(로율)님이 이 메모를 확인했는지 누르는 버튼입니다"
               >
-                <span>{doyoungReadByHyojae ? '✅ 효재 확인완료' : '⬜ 효재 확인체크'}</span>
+                <span>{doyoungReadByHyojae ? '✅ 로율 확인완료' : '⬜ 로율 확인체크'}</span>
               </button>
 
               {/* Row 2: Clear and Save Buttons */}
@@ -282,13 +282,13 @@ export default function SharedMemoBoard() {
                   disabled={savingWho === 'doyoung'}
                   className="flex-2 py-2 bg-charcoal text-ivory rounded-xl text-xs font-bold hover:bg-brown-dark disabled:opacity-50 transition-colors shadow-xs"
                 >
-                  {savingWho === 'doyoung' ? '저장 중...' : '도영 메모 저장'}
+                  {savingWho === 'doyoung' ? '저장 중...' : '이도영 메모 저장'}
                 </button>
               </div>
             </div>
           </div>
 
-          {/* 2. RIGHT: 양효재 (효재) */}
+          {/* 2. RIGHT: 양효재 (로율) */}
           <div className="bg-gradient-to-b from-[#FAF6F0] to-warm-white border border-brown/30 rounded-2xl p-4 shadow-xs flex flex-col justify-between">
             <div>
               {/* Profile Header */}
@@ -297,16 +297,16 @@ export default function SharedMemoBoard() {
                   <div className="w-11 h-11 rounded-full overflow-hidden border-2 border-gold/60 shadow-xs shrink-0 ring-1 ring-brown/20">
                     <img
                       src="/master_hyojae.jpg"
-                      alt="양효재"
+                      alt="양효재(로율)"
                       className="w-full h-full object-cover"
                     />
                   </div>
                   <div>
                     <div className="flex items-center gap-1.5">
-                      <span className="text-sm font-bold text-charcoal">양효재</span>
+                      <span className="text-sm font-bold text-charcoal">양효재 (로율)</span>
                     </div>
                     <p className="text-[11px] text-brown-dark font-medium">
-                      도영에게 남기는 말
+                      이도영(점술신)에게 남기는 말
                     </p>
                   </div>
                 </div>
@@ -316,14 +316,14 @@ export default function SharedMemoBoard() {
                   {hyojaeNote.trim() ? (
                     hyojaeReadByDoyoung ? (
                       <div className="text-[10px] bg-emerald-100 text-emerald-800 border border-emerald-300 px-2 py-0.5 rounded-lg font-bold flex flex-col items-center text-center leading-tight shadow-2xs whitespace-nowrap">
-                        <span>도영 읽음</span>
+                        <span>점술신 읽음</span>
                         <span className="text-[9px] text-emerald-700/80 font-normal">
                           {hyojaeReadAt ? `(${formatReadTime(hyojaeReadAt)})` : ''}
                         </span>
                       </div>
                     ) : (
                       <div className="text-[10px] bg-amber-100 text-amber-800 border border-amber-300 px-2 py-1 rounded-lg font-bold flex items-center justify-center text-center whitespace-nowrap">
-                        <span>도영 미확인</span>
+                        <span>점술신 미확인</span>
                       </div>
                     )
                   ) : null}
@@ -334,15 +334,15 @@ export default function SharedMemoBoard() {
               <textarea
                 value={hyojaeNote}
                 onChange={(e) => setHyojaeNote(e.target.value)}
-                placeholder="효재님이 도영님에게 전할 말을 자유롭게 적어두세요..."
+                placeholder="양효재(로율)님이 이도영(점술신)님에게 전할 말을 자유롭게 적어두세요..."
                 rows={4}
                 className="w-full p-3 bg-white/90 border border-beige-dark/70 rounded-xl text-xs text-charcoal resize-none placeholder:text-charcoal-light/40 leading-relaxed focus:bg-white transition-all shadow-2xs"
               />
             </div>
 
-            {/* Bottom Actions - 2-row layout with ZERO overflow */}
+            {/* Bottom Actions */}
             <div className="mt-3 pt-2.5 border-t border-beige-dark/30 space-y-2">
-              {/* Row 1: Check Button (Full width or prominent) */}
+              {/* Row 1: Check Button */}
               <button
                 type="button"
                 onClick={toggleDoyoungRead}
@@ -354,9 +354,9 @@ export default function SharedMemoBoard() {
                     ? 'bg-emerald-50 text-emerald-700 border-emerald-300 shadow-2xs'
                     : 'bg-warm-white text-charcoal border-beige-dark/70 hover:bg-beige'
                 }`}
-                title="도영이 이 메모를 확인했는지 누르는 버튼입니다"
+                title="이도영(점술신)님이 이 메모를 확인했는지 누르는 버튼입니다"
               >
-                <span>{hyojaeReadByDoyoung ? '✅ 도영 확인완료' : '⬜ 도영 확인체크'}</span>
+                <span>{hyojaeReadByDoyoung ? '✅ 점술신 확인완료' : '⬜ 점술신 확인체크'}</span>
               </button>
 
               {/* Row 2: Clear and Save Buttons */}
@@ -376,7 +376,7 @@ export default function SharedMemoBoard() {
                   disabled={savingWho === 'hyojae'}
                   className="flex-2 py-2 bg-charcoal text-ivory rounded-xl text-xs font-bold hover:bg-brown-dark disabled:opacity-50 transition-colors shadow-xs"
                 >
-                  {savingWho === 'hyojae' ? '저장 중...' : '효재 메모 저장'}
+                  {savingWho === 'hyojae' ? '저장 중...' : '양효재 메모 저장'}
                 </button>
               </div>
             </div>

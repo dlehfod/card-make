@@ -212,31 +212,18 @@ export default function NewCardPage() {
             />
           </div>
 
-          {/* One Line */}
-          <div>
-            <label className="block text-xs font-semibold text-charcoal-light uppercase tracking-widest mb-2">
-              한 줄 해석
-            </label>
-            <input
-              type="text"
-              value={oneLine}
-              onChange={(e) => setOneLine(e.target.value)}
-              placeholder="흔들리지 않는 관계를 원한다."
-              className="w-full px-4 py-3 bg-warm-white border border-beige-dark/50 rounded-xl text-charcoal placeholder:text-charcoal-light/40"
-            />
-          </div>
-
-          {/* Notes */}
-          <div>
-            <label className="block text-xs font-semibold text-charcoal-light uppercase tracking-widest mb-2">
-              메모
+          {/* Image Description (Notes) */}
+          <div className="bg-[#FAF8F5] p-4 rounded-xl border-2 border-brown/30 shadow-2xs">
+            <label className="block text-xs font-bold text-brown-dark uppercase tracking-wide mb-2 flex items-center gap-1.5">
+              <span>🖼️ 카드 이미지 설명</span>
+              <span className="text-[10px] font-normal text-charcoal-light/70">(프롬프트 / 비주얼 묘사)</span>
             </label>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={6}
-              placeholder="자유롭게 메모하세요..."
-              className="w-full px-4 py-3 bg-warm-white border border-beige-dark/50 rounded-xl text-charcoal resize-y placeholder:text-charcoal-light/40"
+              placeholder="카드의 비주얼, 배경, 인물, 색감, 상징물 등 생성할 이미지에 대한 상세 설명을 적어두세요..."
+              className="w-full px-4 py-3 bg-white border border-brown/30 focus:border-brown-dark rounded-xl text-charcoal resize-y placeholder:text-charcoal-light/40 leading-relaxed font-medium"
             />
           </div>
 

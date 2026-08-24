@@ -51,6 +51,73 @@ export default function DeckPage() {
     status: 'todo' as CardStatus,
   });
   const [creatingCard, setCreatingCard] = useState(false);
+  const [uploadingCardId, setUploadingCardId] = useState<string | null>(null);
+
+  // Upload card image directly from computer
+  const handleUploadCardImage = async (cardId: string, file: File) => {
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+    if (!validTypes.includes(file.type)) {
+      alert('JPG, PNG, WEBP, GIF 이미지 파일만 업로드할 수 있습니다.');
+      return;
+    }
+
+    setUploadingCardId(cardId);
+    try {
+      const ext = file.name.split('.').pop() || 'png';
+      const fileName = `${deckId}/${cardId}_${Date.now()}.${ext}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('card-images')
+        .upload(fileName, file, { upsert: true });
+
+      if (uploadError) {
+        console.error('Image upload error:', uploadError);
+        alert('이미지 업로드 실패: ' + uploadError.message);
+        setUploadingCardId(null);
+        return;
+      }
+
+      const { data: urlData } = supabase.storage
+        .from('card-images')
+        .getPublicUrl(fileName);
+
+      const publicUrl = urlData.publicUrl;
+
+      // Update card in database
+      const { error: updateError } = await supabase
+        .from('cards')
+        .update({ image_url: publicUrl })
+        .eq('id', cardId);
+
+      if (updateError) {
+        alert('카드 정보 업데이트에 실패했습니다.');
+      } else {
+        setCards((prev) =>
+          prev.map((c) => (c.id === cardId ? { ...c, image_url: publicUrl } : c))
+        );
+      }
+    } catch (err) {
+      console.error(err);
+      alert('업로드 중 오류가 발생했습니다.');
+    } finally {
+      setUploadingCardId(null);
+    }
+  };
+
+  // Remove card image
+  const handleRemoveCardImage = async (cardId: string) => {
+    if (!window.confirm('등록된 이미지를 삭제하시겠습니까?')) return;
+    const { error } = await supabase
+      .from('cards')
+      .update({ image_url: null })
+      .eq('id', cardId);
+
+    if (!error) {
+      setCards((prev) =>
+        prev.map((c) => (c.id === cardId ? { ...c, image_url: null } : c))
+      );
+    }
+  };
 
   const fetchDeck = async () => {
     const { data } = await supabase
@@ -243,7 +310,7 @@ export default function DeckPage() {
           content += `■ 한 줄 해석:\n${card.one_line}\n\n`;
         }
         if (card.notes) {
-          content += `■ 메모 / 토론 기록:\n${card.notes}\n\n`;
+          content += `■ 카드 이미지 설명:\n${card.notes}\n\n`;
         }
         content += `\n`;
       });
@@ -398,25 +465,17 @@ export default function DeckPage() {
                 />
               </div>
 
-              <div>
-                <label className="block text-[11px] font-semibold text-charcoal-light mb-1">한 줄 해석</label>
-                <input
-                  type="text"
-                  value={newCard.one_line}
-                  onChange={(e) => setNewCard({ ...newCard, one_line: e.target.value })}
-                  placeholder="흔들리지 않는 관계를 원한다."
-                  className="w-full px-3 py-2 bg-ivory border border-beige-dark/60 rounded-lg text-sm text-charcoal"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-semibold text-charcoal-light mb-1">메모 (토론 내용 & 자유 기록)</label>
+              <div className="bg-[#FAF8F5] p-3.5 rounded-xl border border-brown/30 shadow-2xs">
+                <label className="block text-xs font-bold text-brown-dark mb-1.5 flex items-center gap-1.5">
+                  <span>🖼️ 카드 이미지 설명</span>
+                  <span className="text-[10px] font-normal text-charcoal-light/70">(프롬프트 / 비주얼 묘사)</span>
+                </label>
                 <textarea
                   value={newCard.notes}
                   onChange={(e) => setNewCard({ ...newCard, notes: e.target.value })}
                   rows={4}
-                  placeholder="둘이 나누었던 이야기, 특이사항 등을 적어두세요..."
-                  className="w-full px-3 py-2 bg-ivory border border-beige-dark/60 rounded-lg text-sm text-charcoal leading-relaxed"
+                  placeholder="카드의 비주얼, 배경, 인물, 색감, 상징물 등 생성할 이미지에 대한 상세 설명을 적어두세요..."
+                  className="w-full px-3 py-2 bg-white border border-brown/30 focus:border-brown-dark rounded-lg text-sm text-charcoal leading-relaxed placeholder:text-charcoal-light/40"
                 />
               </div>
 
@@ -500,14 +559,25 @@ export default function DeckPage() {
                     onClick={() => toggleExpand(card)}
                     className="flex items-center gap-3 px-5 py-4 cursor-pointer select-none hover:bg-ivory/50 transition-colors"
                   >
-                    {/* Number Badge */}
-                    <span className="w-8 h-8 rounded-lg bg-beige/80 border border-beige-dark/40 flex items-center justify-center text-xs font-mono font-bold text-charcoal shrink-0">
-                      {card.card_number || '•'}
-                    </span>
+                    {/* Number Badge or Thumbnail */}
+                    {card.image_url ? (
+                      <div className="w-9 h-9 rounded-lg overflow-hidden border border-brown/30 shadow-2xs shrink-0 bg-charcoal">
+                        <img src={card.image_url} alt={card.name} className="w-full h-full object-cover" />
+                      </div>
+                    ) : (
+                      <span className="w-9 h-9 rounded-lg bg-beige/80 border border-beige-dark/40 flex items-center justify-center text-xs font-mono font-bold text-charcoal shrink-0">
+                        {card.card_number || '•'}
+                      </span>
+                    )}
 
                     {/* Name & Quick keywords snippet */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
+                        {card.image_url && card.card_number && (
+                          <span className="text-[11px] font-mono font-bold text-brown px-1.5 py-0.5 bg-beige/60 rounded">
+                            #{card.card_number}
+                          </span>
+                        )}
                         <span className="text-sm font-bold text-charcoal truncate">
                           {card.name}
                         </span>
@@ -582,17 +652,98 @@ export default function DeckPage() {
                             </div>
                           )}
 
-                          {/* Notes (Memo) */}
+                          {/* Notes (Image Description) */}
                           {card.notes && (
-                            <div>
-                              <h4 className="text-[11px] font-bold text-charcoal-light tracking-wider uppercase mb-1">
-                                📝 메모 / 토론 기록
+                            <div className="bg-gradient-to-br from-[#FAF7EE] to-[#F5EEE6] p-4 rounded-2xl border-2 border-brown/30 shadow-xs">
+                              <h4 className="text-xs font-bold text-brown-dark tracking-wide mb-1.5 flex items-center gap-1.5">
+                                <span>🖼️ 카드 이미지 설명</span>
+                                <span className="text-[10px] font-normal text-brown/70">(비주얼 / 프롬프트)</span>
                               </h4>
-                              <p className="text-sm text-charcoal leading-relaxed whitespace-pre-wrap bg-ivory p-3.5 rounded-xl border border-beige-dark/30">
+                              <p className="text-sm text-charcoal font-medium leading-relaxed whitespace-pre-wrap">
                                 {card.notes}
                               </p>
                             </div>
                           )}
+
+                          {/* Image Section (Upload & Preview) */}
+                          <div className="bg-[#FAF8F5] p-4 rounded-2xl border border-brown/30 shadow-2xs space-y-3">
+                            <div className="flex items-center justify-between">
+                              <h4 className="text-xs font-bold text-brown-dark tracking-wide flex items-center gap-1.5">
+                                <span>🎨 카드 이미지</span>
+                                {card.image_url && (
+                                  <span className="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-bold">
+                                    등록 완료
+                                  </span>
+                                )}
+                              </h4>
+                            </div>
+
+                            {card.image_url ? (
+                              <div className="space-y-3">
+                                <div className="max-w-xs mx-auto rounded-2xl overflow-hidden border-2 border-brown/30 shadow-md bg-warm-white">
+                                  <img
+                                    src={card.image_url}
+                                    alt={card.name}
+                                    className="w-full h-auto object-contain max-h-80 mx-auto"
+                                  />
+                                </div>
+                                <div className="flex items-center justify-center gap-2 pt-1">
+                                  <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 bg-beige hover:bg-beige-dark text-charcoal rounded-xl text-xs font-semibold border border-beige-dark/60 transition-colors shadow-2xs">
+                                    <span>🔄 다른 이미지로 교체 (내 PC에서 찾기)</span>
+                                    <input
+                                      type="file"
+                                      accept="image/*"
+                                      className="hidden"
+                                      disabled={uploadingCardId === card.id}
+                                      onChange={(e) => {
+                                        const file = e.target.files?.[0];
+                                        if (file) handleUploadCardImage(card.id, file);
+                                      }}
+                                    />
+                                  </label>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRemoveCardImage(card.id)}
+                                    className="px-3 py-1.5 text-red-600 hover:bg-red-50 rounded-xl text-xs font-semibold border border-red-200 transition-colors"
+                                  >
+                                    🗑️ 삭제
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <div>
+                                <label className="flex flex-col items-center justify-center p-5 border-2 border-dashed border-brown/30 hover:border-brown rounded-2xl bg-white hover:bg-ivory/60 cursor-pointer transition-all group">
+                                  {uploadingCardId === card.id ? (
+                                    <div className="flex items-center gap-2 text-brown-dark font-medium text-xs py-2">
+                                      <span className="animate-spin text-base">⏳</span> 이미지 업로드 중...
+                                    </div>
+                                  ) : (
+                                    <>
+                                      <div className="w-10 h-10 rounded-full bg-beige/60 flex items-center justify-center text-xl mb-2 group-hover:scale-110 transition-transform">
+                                        📁
+                                      </div>
+                                      <span className="text-xs font-bold text-charcoal group-hover:text-brown-dark">
+                                        내 PC(하드)에서 이미지 찾아 올리기
+                                      </span>
+                                      <span className="text-[11px] text-charcoal-light mt-1">
+                                        JPG, PNG, WEBP 지원 (클릭하여 파일 선택)
+                                      </span>
+                                    </>
+                                  )}
+                                  <input
+                                    type="file"
+                                    accept="image/*"
+                                    className="hidden"
+                                    disabled={uploadingCardId === card.id}
+                                    onChange={(e) => {
+                                      const file = e.target.files?.[0];
+                                      if (file) handleUploadCardImage(card.id, file);
+                                    }}
+                                  />
+                                </label>
+                              </div>
+                            )}
+                          </div>
 
                           {/* Status quick toggle */}
                           <div>
@@ -627,7 +778,7 @@ export default function DeckPage() {
                               onClick={() => startEdit(card)}
                               className="flex-1 py-2 bg-charcoal text-ivory rounded-xl text-xs font-medium hover:bg-brown-dark"
                             >
-                              ✏️ 메모 / 내용 수정
+                              ✏️ 카드 내용 수정
                             </button>
                             <button
                               onClick={() => handleDeleteCard(card)}
@@ -692,23 +843,17 @@ export default function DeckPage() {
                             />
                           </div>
 
-                          <div>
-                            <label className="block text-[11px] font-semibold text-charcoal-light mb-1">한 줄 해석</label>
-                            <input
-                              type="text"
-                              value={editForm.one_line}
-                              onChange={(e) => setEditForm({ ...editForm, one_line: e.target.value })}
-                              className="w-full px-3 py-2 bg-ivory border border-beige-dark/60 rounded-lg text-sm text-charcoal"
-                            />
-                          </div>
-
-                          <div>
-                            <label className="block text-[11px] font-semibold text-charcoal-light mb-1">메모</label>
+                          <div className="bg-[#FAF8F5] p-3.5 rounded-xl border-2 border-brown/30 shadow-2xs">
+                            <label className="block text-xs font-bold text-brown-dark mb-1.5 flex items-center gap-1.5">
+                              <span>🖼️ 카드 이미지 설명</span>
+                              <span className="text-[10px] font-normal text-charcoal-light/70">(프롬프트 / 비주얼 묘사)</span>
+                            </label>
                             <textarea
                               value={editForm.notes}
                               onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
                               rows={4}
-                              className="w-full px-3 py-2 bg-ivory border border-beige-dark/60 rounded-lg text-sm text-charcoal"
+                              placeholder="카드의 비주얼, 배경, 인물, 색감, 상징물 등 생성할 이미지에 대한 상세 설명을 적어두세요..."
+                              className="w-full px-3 py-2 bg-white border border-brown/30 focus:border-brown-dark rounded-lg text-sm text-charcoal leading-relaxed placeholder:text-charcoal-light/40"
                             />
                           </div>
 

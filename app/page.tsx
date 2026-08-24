@@ -63,7 +63,7 @@ export default function HomePage() {
 
     if (error) {
       console.error('Error adding deck:', error);
-      alert('덱 추가에 실패했습니다.');
+      alert('덱 추가 실패: ' + (error.message || 'Supabase 연결을 확인해주세요.'));
     } else {
       setNewDeckName('');
       setShowAddModal(false);
@@ -83,7 +83,7 @@ export default function HomePage() {
 
     if (error) {
       console.error('Error updating deck:', error);
-      alert('덱 수정에 실패했습니다.');
+      alert('덱 수정 실패: ' + (error.message || 'Supabase 연결을 확인해주세요.'));
     } else {
       setEditingDeck(null);
       setEditName('');
@@ -103,7 +103,7 @@ export default function HomePage() {
 
     if (error) {
       console.error('Error deleting deck:', error);
-      alert('덱 삭제에 실패했습니다.');
+      alert('덱 삭제 실패: ' + (error.message || 'Supabase 연결을 확인해주세요.'));
     } else {
       await fetchDecks();
     }
@@ -121,7 +121,7 @@ export default function HomePage() {
             TAROT LAB
           </h1>
           <p className="mt-3 text-sm text-charcoal-light tracking-widest">
-            점술신 & 양효재의 타로 공동 작업실
+            이도영(점술신) & 양효재(로율)의 타로 공동 작업실
           </p>
         </div>
       </header>
