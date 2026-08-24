@@ -389,11 +389,10 @@ export default function DeckPage() {
         <div className="flex flex-col sm:flex-row gap-3 mb-6">
           <button
             onClick={() => setShowAddCard(!showAddCard)}
-            className={`px-5 py-2.5 rounded-xl font-medium text-sm transition-all shadow-xs ${
-              showAddCard
+            className={`px-5 py-2.5 rounded-xl font-medium text-sm transition-all shadow-xs ${showAddCard
                 ? 'bg-beige-dark text-charcoal'
                 : 'bg-charcoal text-ivory hover:bg-brown-dark'
-            }`}
+              }`}
           >
             {showAddCard ? '✕ 입력창 닫기' : '+ 카드 추가'}
           </button>
@@ -487,15 +486,14 @@ export default function DeckPage() {
                       key={s}
                       type="button"
                       onClick={() => setNewCard({ ...newCard, status: s })}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-medium border ${
-                        newCard.status === s
+                      className={`px-3 py-1.5 rounded-lg text-xs font-medium border ${newCard.status === s
                           ? s === 'todo'
                             ? 'bg-gray-200 text-gray-800 border-gray-400 font-bold'
                             : s === 'working'
-                            ? 'bg-amber-100 text-amber-900 border-amber-400 font-bold'
-                            : 'bg-emerald-100 text-emerald-900 border-emerald-400 font-bold'
+                              ? 'bg-amber-100 text-amber-900 border-amber-400 font-bold'
+                              : 'bg-emerald-100 text-emerald-900 border-emerald-400 font-bold'
                           : 'bg-warm-white text-charcoal-light border-beige-dark/50'
-                      }`}
+                        }`}
                     >
                       {STATUS_LABELS[s]}
                     </button>
@@ -548,11 +546,10 @@ export default function DeckPage() {
               return (
                 <div
                   key={card.id}
-                  className={`bg-warm-white border rounded-2xl transition-all duration-200 overflow-hidden ${
-                    isExpanded
+                  className={`bg-warm-white border rounded-2xl transition-all duration-200 overflow-hidden ${isExpanded
                       ? 'border-brown/50 shadow-md ring-1 ring-brown/20'
                       : 'border-beige-dark/40 hover:border-brown/30 shadow-xs'
-                  }`}
+                    }`}
                 >
                   {/* Card Row Header (Click to Expand / Collapse) */}
                   <div
@@ -756,15 +753,14 @@ export default function DeckPage() {
                                   key={s}
                                   type="button"
                                   onClick={() => handleQuickStatusChange(card, s)}
-                                  className={`px-3 py-1 rounded-lg text-xs font-medium border transition-colors ${
-                                    card.status === s
+                                  className={`px-3 py-1 rounded-lg text-xs font-medium border transition-colors ${card.status === s
                                       ? s === 'todo'
                                         ? 'bg-gray-200 text-gray-800 border-gray-400 font-bold'
                                         : s === 'working'
-                                        ? 'bg-amber-100 text-amber-900 border-amber-400 font-bold'
-                                        : 'bg-emerald-100 text-emerald-900 border-emerald-400 font-bold'
+                                          ? 'bg-amber-100 text-amber-900 border-amber-400 font-bold'
+                                          : 'bg-emerald-100 text-emerald-900 border-emerald-400 font-bold'
                                       : 'bg-warm-white text-charcoal-light border-beige-dark/50 hover:bg-beige'
-                                  }`}
+                                    }`}
                                 >
                                   {STATUS_LABELS[s]}
                                 </button>
@@ -855,59 +851,6 @@ export default function DeckPage() {
                               placeholder="카드의 비주얼, 배경, 인물, 색감, 상징물 등 생성할 이미지에 대한 상세 설명을 적어두세요..."
                               className="w-full px-3 py-2 bg-white border border-brown/30 focus:border-brown-dark rounded-lg text-sm text-charcoal leading-relaxed placeholder:text-charcoal-light/40"
                             />
-                            
-                            {/* Image Upload in Edit Mode */}
-                            <div className="mt-4 pt-4 border-t border-brown/20">
-                              <label className="block text-xs font-bold text-brown-dark mb-2">🎨 카드 이미지 업로드</label>
-                              {card.image_url ? (
-                                <div className="space-y-3">
-                                  <div className="w-32 rounded-xl overflow-hidden border-2 border-brown/30">
-                                    <img src={card.image_url} alt="preview" className="w-full h-auto" />
-                                  </div>
-                                  <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-beige-dark text-charcoal rounded-xl text-xs font-semibold border border-beige-dark/60 transition-colors">
-                                    <span>🔄 다른 이미지로 교체</span>
-                                    <input
-                                      type="file"
-                                      accept="image/*"
-                                      className="hidden"
-                                      disabled={uploadingCardId === card.id}
-                                      onChange={(e) => {
-                                        const file = e.target.files?.[0];
-                                        if (file) handleUploadCardImage(card.id, file);
-                                      }}
-                                    />
-                                  </label>
-                                </div>
-                              ) : (
-                                <label className="flex items-center justify-center p-4 border-2 border-dashed border-brown/30 hover:border-brown rounded-xl bg-white cursor-pointer transition-all">
-                                  {uploadingCardId === card.id ? (
-                                    <span className="text-xs font-medium text-brown-dark">업로드 중...⏳</span>
-                                  ) : (
-                                    <span className="text-xs font-bold text-charcoal">📁 내 PC에서 이미지 찾아 올리기</span>
-                                  )}
-                                  <input
-                                    type="file"
-                                    accept="image/*"
-                                    className="hidden"
-                                    disabled={uploadingCardId === card.id}
-                                    onChange={(e) => {
-                                      const file = e.target.files?.[0];
-                                      if (file) handleUploadCardImage(card.id, file);
-                                    }}
-                                  />
-                                </label>
-                              )}
-                            </div>
-                          </div>
-
-                          <div>
-                            <label className="block text-[11px] font-semibold text-charcoal-light mb-1">한 줄 해석 (복구됨)</label>
-                            <input
-                              type="text"
-                              value={editForm.one_line}
-                              onChange={(e) => setEditForm({ ...editForm, one_line: e.target.value })}
-                              className="w-full px-3 py-2 bg-ivory border border-beige-dark/60 rounded-lg text-sm text-charcoal"
-                            />
                           </div>
 
                           <div>
@@ -918,15 +861,14 @@ export default function DeckPage() {
                                   key={s}
                                   type="button"
                                   onClick={() => setEditForm({ ...editForm, status: s })}
-                                  className={`px-3 py-1.5 rounded-lg text-xs font-medium border ${
-                                    editForm.status === s
+                                  className={`px-3 py-1.5 rounded-lg text-xs font-medium border ${editForm.status === s
                                       ? s === 'todo'
                                         ? 'bg-gray-200 text-gray-800 border-gray-400 font-bold'
                                         : s === 'working'
-                                        ? 'bg-amber-100 text-amber-900 border-amber-400 font-bold'
-                                        : 'bg-emerald-100 text-emerald-900 border-emerald-400 font-bold'
+                                          ? 'bg-amber-100 text-amber-900 border-amber-400 font-bold'
+                                          : 'bg-emerald-100 text-emerald-900 border-emerald-400 font-bold'
                                       : 'bg-warm-white text-charcoal-light border-beige-dark/50'
-                                  }`}
+                                    }`}
                                 >
                                   {STATUS_LABELS[s]}
                                 </button>
