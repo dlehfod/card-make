@@ -803,6 +803,29 @@ export default function DeckPage() {
                               </p>
                             )}
 
+                            {card.notes_last_editor && (!card.notes_read_by_doyoung || !card.notes_read_by_hyojae) && (
+                              <div className="mt-2 flex gap-2">
+                                {!card.notes_read_by_doyoung && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleNotesReadConfirm(card.id, 'doyoung')}
+                                    className="px-3 py-1.5 text-[10px] font-semibold rounded-lg border border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors"
+                                  >
+                                    ✅ 점술신 읽었어요
+                                  </button>
+                                )}
+                                {!card.notes_read_by_hyojae && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleNotesReadConfirm(card.id, 'hyojae')}
+                                    className="px-3 py-1.5 text-[10px] font-semibold rounded-lg border border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors"
+                                  >
+                                    ✅ 로율 읽었어요
+                                  </button>
+                                )}
+                              </div>
+                            )}
+
                           </div>
 
                           {/* Image Section (Upload & Preview) - 최대 3장 */}
@@ -910,6 +933,29 @@ export default function DeckPage() {
                               <p className="text-xs text-charcoal-light/60 italic">
                                 작성된 피드백이 없습니다. (수정 버튼을 눌러 작성해주세요)
                               </p>
+                            )}
+
+                            {card.feedback_last_editor && (!card.feedback_read_by_doyoung || !card.feedback_read_by_hyojae) && (
+                              <div className="mt-2 flex gap-2">
+                                {!card.feedback_read_by_doyoung && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleFeedbackReadConfirm(card.id, 'doyoung')}
+                                    className="px-3 py-1.5 text-[10px] font-semibold rounded-lg border border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors"
+                                  >
+                                    ✅ 점술신 읽었어요
+                                  </button>
+                                )}
+                                {!card.feedback_read_by_hyojae && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleFeedbackReadConfirm(card.id, 'hyojae')}
+                                    className="px-3 py-1.5 text-[10px] font-semibold rounded-lg border border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors"
+                                  >
+                                    ✅ 로율 읽었어요
+                                  </button>
+                                )}
+                              </div>
                             )}
 
                           </div>
