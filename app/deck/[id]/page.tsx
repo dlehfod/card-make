@@ -328,15 +328,13 @@ export default function DeckPage() {
   };
 
   // 통합 읽음확인: notes + feedback 모두 읽음 처리
-  const handleReadConfirmAll = async (cardId: string, reader: 'doyoung' | 'hyojae') => {
-    const updateData: Record<string, boolean> = {};
-    if (reader === 'doyoung') {
-      updateData.notes_read_by_doyoung = true;
-      updateData.feedback_read_by_doyoung = true;
-    } else {
-      updateData.notes_read_by_hyojae = true;
-      updateData.feedback_read_by_hyojae = true;
-    }
+  const handleReadConfirmAll = async (cardId: string) => {
+    const updateData = {
+      notes_read_by_doyoung: true,
+      notes_read_by_hyojae: true,
+      feedback_read_by_doyoung: true,
+      feedback_read_by_hyojae: true,
+    };
 
     const { error } = await supabase
       .from('cards')
@@ -939,28 +937,16 @@ export default function DeckPage() {
 
                           </div>
 
-                          {/* 통합 읽음확인 버튼 */}
-                          {((!card.notes_read_by_doyoung || !card.feedback_read_by_doyoung) || (!card.notes_read_by_hyojae || !card.feedback_read_by_hyojae)) && (
-                            <div className="flex gap-2">
-                              {(!card.notes_read_by_doyoung || !card.feedback_read_by_doyoung) && (
-                                <button
-                                  type="button"
-                                  onClick={() => handleReadConfirmAll(card.id, 'doyoung')}
-                                  className="flex-1 py-2 text-xs font-semibold rounded-xl border border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors"
-                                >
-                                  ✅ 점술신 읽었어요
-                                </button>
-                              )}
-                              {(!card.notes_read_by_hyojae || !card.feedback_read_by_hyojae) && (
-                                <button
-                                  type="button"
-                                  onClick={() => handleReadConfirmAll(card.id, 'hyojae')}
-                                  className="flex-1 py-2 text-xs font-semibold rounded-xl border border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors"
-                                >
-                                  ✅ 로율 읽었어요
-                                </button>
-                              )}
-                            </div>
+                          {/* 통합 읽음확인 체크박스 */}
+                          {(!card.notes_read_by_doyoung || !card.notes_read_by_hyojae || !card.feedback_read_by_doyoung || !card.feedback_read_by_hyojae) && (
+                            <label
+                              className="flex items-center gap-2 px-4 py-3 bg-emerald-50 border border-emerald-200 rounded-xl cursor-pointer hover:bg-emerald-100 transition-colors"
+                              onClick={() => handleReadConfirmAll(card.id)}
+                            >
+                              <span className="w-5 h-5 border-2 border-emerald-400 rounded flex items-center justify-center bg-white">
+                              </span>
+                              <span className="text-xs font-semibold text-emerald-700">읽음확인</span>
+                            </label>
                           )}
 
                           {/* Status quick toggle */}
