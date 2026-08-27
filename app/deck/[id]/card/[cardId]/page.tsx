@@ -299,11 +299,6 @@ export default function CardDetailPage() {
             <div className="mb-8 bg-gradient-to-br from-[#EBF5FF] to-[#E1F0FF] p-4 rounded-2xl border-2 border-blue-200 shadow-xs">
               <h3 className="text-xs font-bold text-blue-800 uppercase tracking-wide mb-2 flex items-center gap-1.5">
                 <span>💬 그림 피드백</span>
-                {card.feedback_last_editor && (
-                  <span className="text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-md font-medium ml-auto">
-                    {card.feedback_last_editor === 'doyoung' ? '점술신' : '로율'} 수정
-                  </span>
-                )}
               </h3>
               <p className="text-charcoal font-medium leading-relaxed whitespace-pre-wrap">
                 {card.image_feedback}
@@ -352,11 +347,6 @@ export default function CardDetailPage() {
                 <h3 className="text-xs font-bold text-brown-dark uppercase tracking-wide mb-2 flex items-center gap-1.5">
                   <span>🖼️ 카드 이미지 설명</span>
                   <span className="text-[10px] font-normal text-brown/70">(프롬프트 / 비주얼 묘사)</span>
-                  {card.notes_last_editor && (
-                    <span className="text-[10px] bg-brown/10 text-brown-dark px-1.5 py-0.5 rounded-md font-medium ml-auto">
-                      {card.notes_last_editor === 'doyoung' ? '점술신' : '로율'} 수정
-                    </span>
-                  )}
                 </h3>
                 <p className="text-charcoal font-medium leading-relaxed whitespace-pre-wrap">
                   {card.notes}

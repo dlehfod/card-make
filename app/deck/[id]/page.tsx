@@ -466,7 +466,7 @@ export default function DeckPage() {
     return (
       <div className="flex-1 flex flex-col items-center justify-center text-charcoal-light gap-4 py-20">
         <p>덱을 찾을 수 없습니다.</p>
-        <Link href="/" className="text-brown hover:underline">← 덱 목록으로 돌아가기</Link>
+        <Link href="/#deck-list" className="text-brown hover:underline">← 덱 목록으로 돌아가기</Link>
       </div>
     );
   }
@@ -477,7 +477,7 @@ export default function DeckPage() {
       <header className="border-b border-beige-dark/50 bg-warm-white sticky top-0 z-30 shadow-xs">
         <div className="max-w-3xl mx-auto px-6 py-5">
           <Link
-            href="/"
+            href="/#deck-list"
             className="inline-flex items-center text-xs text-charcoal-light hover:text-brown font-medium tracking-wider mb-2"
           >
             ← 덱 목록
@@ -787,11 +787,6 @@ export default function DeckPage() {
                             <h4 className="text-xs font-bold text-brown-dark tracking-wide mb-1.5 flex items-center gap-1.5">
                               <span>🖼️ 카드 이미지 설명</span>
                               <span className="text-[10px] font-normal text-brown/70">(비주얼 / 프롬프트)</span>
-                              {card.notes_last_editor && (
-                                <span className="text-[10px] bg-brown/10 text-brown-dark px-1.5 py-0.5 rounded-md font-medium ml-auto">
-                                  {card.notes_last_editor === 'doyoung' ? '점술신' : '로율'} 수정
-                                </span>
-                              )}
                             </h4>
                             {card.notes ? (
                               <p className="text-sm text-charcoal font-medium leading-relaxed whitespace-pre-wrap">
@@ -919,11 +914,6 @@ export default function DeckPage() {
                             <h4 className="text-xs font-bold text-blue-800 tracking-wide mb-1.5 flex items-center gap-1.5">
                               <span>💬 그림 피드백</span>
                               <span className="text-[10px] font-normal text-blue-600/70">(수정 사항 / 피드백 의견)</span>
-                              {card.feedback_last_editor && (
-                                <span className="text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-md font-medium ml-auto">
-                                  {card.feedback_last_editor === 'doyoung' ? '점술신' : '로율'} 수정
-                                </span>
-                              )}
                             </h4>
                             {card.image_feedback ? (
                               <p className="text-sm text-charcoal font-medium leading-relaxed whitespace-pre-wrap">

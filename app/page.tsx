@@ -135,7 +135,7 @@ export default function HomePage() {
         <GoalRoadmap />
 
         {/* 3. Decks Section */}
-        <div className="pt-2">
+        <div id="deck-list" className="pt-2">
           <div className="flex items-center justify-between mb-3 px-1">
             <h2 className="text-xs font-bold text-charcoal-light uppercase tracking-wider flex items-center gap-1.5">
               <span>🃏</span>
