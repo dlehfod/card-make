@@ -327,6 +327,29 @@ export default function DeckPage() {
     }
   };
 
+  // 통합 읽음확인: notes + feedback 모두 읽음 처리
+  const handleReadConfirmAll = async (cardId: string, reader: 'doyoung' | 'hyojae') => {
+    const updateData: Record<string, boolean> = {};
+    if (reader === 'doyoung') {
+      updateData.notes_read_by_doyoung = true;
+      updateData.feedback_read_by_doyoung = true;
+    } else {
+      updateData.notes_read_by_hyojae = true;
+      updateData.feedback_read_by_hyojae = true;
+    }
+
+    const { error } = await supabase
+      .from('cards')
+      .update(updateData)
+      .eq('id', cardId);
+
+    if (!error) {
+      setCards((prev) =>
+        prev.map((c) => (c.id === cardId ? { ...c, ...updateData } as Card : c))
+      );
+    }
+  };
+
   // Delete Card
   const handleDeleteCard = async (card: Card) => {
     if (!window.confirm(`"${card.name}" 카드를 삭제하시겠습니까?`)) return;
@@ -476,12 +499,22 @@ export default function DeckPage() {
       {/* Header */}
       <header className="border-b border-beige-dark/50 bg-warm-white sticky top-0 z-30 shadow-xs">
         <div className="max-w-3xl mx-auto px-6 py-5">
-          <Link
-            href="/#deck-list"
-            className="inline-flex items-center text-xs text-charcoal-light hover:text-brown font-medium tracking-wider mb-2"
-          >
-            ← 덱 목록
-          </Link>
+          <div className="flex items-center gap-3 mb-2">
+            <button
+              type="button"
+              onClick={() => { setExpandedCardId(null); setEditingCardId(null); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+              className="inline-flex items-center text-xs text-charcoal-light hover:text-brown font-medium tracking-wider"
+            >
+              ← 덱 목록
+            </button>
+            <span className="text-beige-dark/50">|</span>
+            <Link
+              href="/"
+              className="inline-flex items-center text-xs text-charcoal-light hover:text-brown font-medium tracking-wider"
+            >
+              ← 메인으로
+            </Link>
+          </div>
           <div className="flex items-center justify-between gap-3">
             <div>
               <h1 className="text-2xl font-bold text-charcoal">
@@ -798,28 +831,6 @@ export default function DeckPage() {
                               </p>
                             )}
 
-                            {card.notes_last_editor && (!card.notes_read_by_doyoung || !card.notes_read_by_hyojae) && (
-                              <div className="mt-2 flex gap-2">
-                                {!card.notes_read_by_doyoung && (
-                                  <button
-                                    type="button"
-                                    onClick={() => handleNotesReadConfirm(card.id, 'doyoung')}
-                                    className="px-3 py-1.5 text-[10px] font-semibold rounded-lg border border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors"
-                                  >
-                                    ✅ 점술신 읽었어요
-                                  </button>
-                                )}
-                                {!card.notes_read_by_hyojae && (
-                                  <button
-                                    type="button"
-                                    onClick={() => handleNotesReadConfirm(card.id, 'hyojae')}
-                                    className="px-3 py-1.5 text-[10px] font-semibold rounded-lg border border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors"
-                                  >
-                                    ✅ 로율 읽었어요
-                                  </button>
-                                )}
-                              </div>
-                            )}
 
                           </div>
 
@@ -925,30 +936,32 @@ export default function DeckPage() {
                               </p>
                             )}
 
-                            {card.feedback_last_editor && (!card.feedback_read_by_doyoung || !card.feedback_read_by_hyojae) && (
-                              <div className="mt-2 flex gap-2">
-                                {!card.feedback_read_by_doyoung && (
-                                  <button
-                                    type="button"
-                                    onClick={() => handleFeedbackReadConfirm(card.id, 'doyoung')}
-                                    className="px-3 py-1.5 text-[10px] font-semibold rounded-lg border border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors"
-                                  >
-                                    ✅ 점술신 읽었어요
-                                  </button>
-                                )}
-                                {!card.feedback_read_by_hyojae && (
-                                  <button
-                                    type="button"
-                                    onClick={() => handleFeedbackReadConfirm(card.id, 'hyojae')}
-                                    className="px-3 py-1.5 text-[10px] font-semibold rounded-lg border border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors"
-                                  >
-                                    ✅ 로율 읽었어요
-                                  </button>
-                                )}
-                              </div>
-                            )}
 
                           </div>
+
+                          {/* 통합 읽음확인 버튼 */}
+                          {((!card.notes_read_by_doyoung || !card.feedback_read_by_doyoung) || (!card.notes_read_by_hyojae || !card.feedback_read_by_hyojae)) && (
+                            <div className="flex gap-2">
+                              {(!card.notes_read_by_doyoung || !card.feedback_read_by_doyoung) && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleReadConfirmAll(card.id, 'doyoung')}
+                                  className="flex-1 py-2 text-xs font-semibold rounded-xl border border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors"
+                                >
+                                  ✅ 점술신 읽었어요
+                                </button>
+                              )}
+                              {(!card.notes_read_by_hyojae || !card.feedback_read_by_hyojae) && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleReadConfirmAll(card.id, 'hyojae')}
+                                  className="flex-1 py-2 text-xs font-semibold rounded-xl border border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors"
+                                >
+                                  ✅ 로율 읽었어요
+                                </button>
+                              )}
+                            </div>
+                          )}
 
                           {/* Status quick toggle */}
                           <div>
