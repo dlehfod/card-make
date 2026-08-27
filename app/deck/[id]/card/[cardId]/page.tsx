@@ -24,9 +24,10 @@ export default function CardDetailPage() {
   const [editKeywords, setEditKeywords] = useState('');
   const [editOneLine, setEditOneLine] = useState('');
   const [editNotes, setEditNotes] = useState('');
+  const [editImageFeedback, setEditImageFeedback] = useState('');
   const [editStatus, setEditStatus] = useState<CardStatus>('todo');
-  const [editImage, setEditImage] = useState<File | null>(null);
-  const [editImagePreview, setEditImagePreview] = useState<string | null>(null);
+  const [editImages, setEditImages] = useState<(File | null)[]>([null, null, null]);
+  const [editImagePreviews, setEditImagePreviews] = useState<(string | null)[]>([null, null, null]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -49,15 +50,17 @@ export default function CardDetailPage() {
     setEditKeywords(c.keywords || '');
     setEditOneLine(c.one_line || '');
     setEditNotes(c.notes || '');
+    setEditImageFeedback(c.image_feedback || '');
     setEditStatus(c.status);
-    setEditImagePreview(c.image_url);
+    setEditImagePreviews([c.image_url, c.image_url_2, c.image_url_3]);
+    setEditImages([null, null, null]);
   };
 
   useEffect(() => {
     fetchData();
   }, [deckId, cardId]);
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -67,45 +70,64 @@ export default function CardDetailPage() {
       return;
     }
 
-    setEditImage(file);
-    setEditImagePreview(URL.createObjectURL(file));
+    const newFiles = [...editImages];
+    newFiles[index] = file;
+    setEditImages(newFiles);
+
+    const newPreviews = [...editImagePreviews];
+    newPreviews[index] = URL.createObjectURL(file);
+    setEditImagePreviews(newPreviews);
   };
 
-  const uploadImage = async (file: File): Promise<string | null> => {
-    const ext = file.name.split('.').pop();
-    const fileName = `${deckId}/${cardId}_${Date.now()}.${ext}`;
+  const handleRemoveEditImage = (index: number) => {
+    const newFiles = [...editImages];
+    newFiles[index] = null;
+    setEditImages(newFiles);
 
-    const { error } = await supabase.storage
-      .from('card-images')
-      .upload(fileName, file, { upsert: true });
-
-    if (error) {
-      console.error('Image upload error:', error);
-      return null;
-    }
-
-    const { data } = supabase.storage
-      .from('card-images')
-      .getPublicUrl(fileName);
-
-    return data.publicUrl;
+    const newPreviews = [...editImagePreviews];
+    // Revoke if it's a blob URL
+    if (newPreviews[index]?.startsWith('blob:')) URL.revokeObjectURL(newPreviews[index]!);
+    newPreviews[index] = null;
+    setEditImagePreviews(newPreviews);
   };
+
 
   const handleSave = async () => {
     if (!card) return;
     setSaving(true);
 
-    let imageUrl = card.image_url;
+    const imageUrlFields = ['image_url', 'image_url_2', 'image_url_3'] as const;
+    const imageUrls: (string | null)[] = [card.image_url, card.image_url_2, card.image_url_3];
 
-    if (editImage) {
-      const uploaded = await uploadImage(editImage);
-      if (uploaded) {
-        imageUrl = uploaded;
-      } else {
-        alert('이미지 업로드에 실패했습니다.');
-        setSaving(false);
-        return;
+    // Upload new images and update removed ones
+    for (let i = 0; i < 3; i++) {
+      if (editImages[i]) {
+        // New file selected for this slot
+        const file = editImages[i]!;
+        const ext = file.name.split('.').pop();
+        const fileName = `${deckId}/${cardId}_${i + 1}_${Date.now()}.${ext}`;
+
+        const { error } = await supabase.storage
+          .from('card-images')
+          .upload(fileName, file, { upsert: true });
+
+        if (error) {
+          console.error(`Image ${i + 1} upload error:`, error);
+          alert(`이미지 ${i + 1} 업로드에 실패했습니다.`);
+          setSaving(false);
+          return;
+        }
+
+        const { data } = supabase.storage
+          .from('card-images')
+          .getPublicUrl(fileName);
+
+        imageUrls[i] = data.publicUrl;
+      } else if (editImagePreviews[i] === null) {
+        // Image was removed
+        imageUrls[i] = null;
       }
+      // else: keep existing URL
     }
 
     const { error } = await supabase
@@ -116,20 +138,90 @@ export default function CardDetailPage() {
         keywords: editKeywords.trim() || null,
         one_line: editOneLine.trim() || null,
         notes: editNotes.trim() || null,
+        image_feedback: editImageFeedback.trim() || null,
         status: editStatus,
-        image_url: imageUrl,
+        image_url: imageUrls[0],
+        image_url_2: imageUrls[1],
+        image_url_3: imageUrls[2],
       })
       .eq('id', cardId);
 
     if (error) {
       console.error('Error saving card:', error);
-      alert('저장에 실패했습니다.');
-    } else {
-      setIsEditing(false);
-      setEditImage(null);
-      await fetchData();
+      alert(`저장에 실패했습니다: ${error.message}`);
+      setSaving(false);
+      return;
     }
+    setIsEditing(false);
+    setEditImages([null, null, null]);
+    await fetchData();
     setSaving(false);
+  };
+
+  const handleFeedbackReadRequest = async (editor: 'doyoung' | 'hyojae') => {
+    if (!card) return;
+    const updateData: Record<string, unknown> = {
+      feedback_last_editor: editor,
+    };
+    if (editor === 'doyoung') {
+      updateData.feedback_read_by_hyojae = false;
+      updateData.feedback_read_by_doyoung = true;
+    } else {
+      updateData.feedback_read_by_doyoung = false;
+      updateData.feedback_read_by_hyojae = true;
+    }
+    const { error } = await supabase
+      .from('cards')
+      .update(updateData)
+      .eq('id', cardId);
+    if (!error) {
+      setCard({ ...card, ...updateData } as Card);
+    }
+  };
+
+  const handleFeedbackReadConfirm = async (reader: 'doyoung' | 'hyojae') => {
+    if (!card) return;
+    const fieldName = reader === 'doyoung' ? 'feedback_read_by_doyoung' : 'feedback_read_by_hyojae';
+    const { error } = await supabase
+      .from('cards')
+      .update({ [fieldName]: true })
+      .eq('id', cardId);
+    if (!error) {
+      setCard({ ...card, [fieldName]: true } as Card);
+    }
+  };
+
+  const handleNotesReadRequest = async (editor: 'doyoung' | 'hyojae') => {
+    if (!card) return;
+    const updateData: Record<string, unknown> = {
+      notes_last_editor: editor,
+    };
+    if (editor === 'doyoung') {
+      updateData.notes_read_by_hyojae = false;
+      updateData.notes_read_by_doyoung = true;
+    } else {
+      updateData.notes_read_by_doyoung = false;
+      updateData.notes_read_by_hyojae = true;
+    }
+    const { error } = await supabase
+      .from('cards')
+      .update(updateData)
+      .eq('id', cardId);
+    if (!error) {
+      setCard({ ...card, ...updateData } as Card);
+    }
+  };
+
+  const handleNotesReadConfirm = async (reader: 'doyoung' | 'hyojae') => {
+    if (!card) return;
+    const fieldName = reader === 'doyoung' ? 'notes_read_by_doyoung' : 'notes_read_by_hyojae';
+    const { error } = await supabase
+      .from('cards')
+      .update({ [fieldName]: true })
+      .eq('id', cardId);
+    if (!error) {
+      setCard({ ...card, [fieldName]: true } as Card);
+    }
   };
 
   const handleDelete = async () => {
@@ -183,16 +275,39 @@ export default function CardDetailPage() {
         </header>
 
         <div className="max-w-2xl mx-auto px-6 py-8">
-          {/* Card Image */}
-          {card.image_url && (
-            <div className="mb-8 flex justify-center">
-              <div className="w-full max-w-sm rounded-2xl overflow-hidden shadow-lg bg-warm-white border border-beige-dark/30">
-                <img
-                  src={card.image_url}
-                  alt={card.name}
-                  className="w-full h-auto object-contain"
-                />
+          {/* Card Images */}
+          {(card.image_url || card.image_url_2 || card.image_url_3) && (
+            <div className="mb-8">
+              <div className={`grid gap-3 ${[card.image_url, card.image_url_2, card.image_url_3].filter(Boolean).length === 1 ? 'grid-cols-1 max-w-sm mx-auto' : [card.image_url, card.image_url_2, card.image_url_3].filter(Boolean).length === 2 ? 'grid-cols-2 max-w-lg mx-auto' : 'grid-cols-3 max-w-2xl mx-auto'}`}>
+                {[card.image_url, card.image_url_2, card.image_url_3].map((url, idx) =>
+                  url ? (
+                    <div key={idx} className="rounded-2xl overflow-hidden shadow-lg bg-warm-white border border-beige-dark/30">
+                      <img
+                        src={url}
+                        alt={`${card.name} ${idx + 1}`}
+                        className="w-full h-auto object-contain"
+                      />
+                    </div>
+                  ) : null
+                )}
               </div>
+            </div>
+          )}
+
+          {/* Image Feedback (View Mode) */}
+          {card.image_feedback && (
+            <div className="mb-8 bg-gradient-to-br from-[#EBF5FF] to-[#E1F0FF] p-4 rounded-2xl border-2 border-blue-200 shadow-xs">
+              <h3 className="text-xs font-bold text-blue-800 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+                <span>💬 그림 피드백</span>
+                {card.feedback_last_editor && (
+                  <span className="text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-md font-medium ml-auto">
+                    {card.feedback_last_editor === 'doyoung' ? '점술신' : '로율'} 수정
+                  </span>
+                )}
+              </h3>
+              <p className="text-charcoal font-medium leading-relaxed whitespace-pre-wrap">
+                {card.image_feedback}
+              </p>
             </div>
           )}
 
@@ -231,23 +346,17 @@ export default function CardDetailPage() {
             )}
 
             {/* One Line */}
-            {card.one_line && (
-              <div>
-                <h3 className="text-xs font-semibold text-charcoal-light uppercase tracking-widest mb-2">
-                  한 줄 해석
-                </h3>
-                <p className="text-charcoal italic">
-                  {card.one_line}
-                </p>
-              </div>
-            )}
-
             {/* Notes (Image Description) */}
             {card.notes && (
               <div className="bg-gradient-to-br from-[#FAF7EE] to-[#F5EEE6] p-4 rounded-2xl border-2 border-brown/30 shadow-xs">
                 <h3 className="text-xs font-bold text-brown-dark uppercase tracking-wide mb-2 flex items-center gap-1.5">
                   <span>🖼️ 카드 이미지 설명</span>
                   <span className="text-[10px] font-normal text-brown/70">(프롬프트 / 비주얼 묘사)</span>
+                  {card.notes_last_editor && (
+                    <span className="text-[10px] bg-brown/10 text-brown-dark px-1.5 py-0.5 rounded-md font-medium ml-auto">
+                      {card.notes_last_editor === 'doyoung' ? '점술신' : '로율'} 수정
+                    </span>
+                  )}
                 </h3>
                 <p className="text-charcoal font-medium leading-relaxed whitespace-pre-wrap">
                   {card.notes}
@@ -319,21 +428,65 @@ export default function CardDetailPage() {
             />
           </div>
 
-          {/* Image */}
+          {/* Images (up to 3) */}
           <div>
             <label className="block text-xs font-semibold text-charcoal-light uppercase tracking-widest mb-2">
-              카드 이미지
+              카드 이미지 (최대 3장)
             </label>
-            {editImagePreview && (
-              <div className="mb-3 w-40 rounded-xl overflow-hidden border border-beige-dark/30">
-                <img src={editImagePreview} alt="preview" className="w-full h-auto" />
-              </div>
-            )}
-            <input
-              type="file"
-              accept=".jpg,.jpeg,.png,.webp"
-              onChange={handleImageChange}
-              className="text-sm text-charcoal-light file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-beige file:text-charcoal file:font-medium file:cursor-pointer hover:file:bg-beige-dark"
+            <div className="grid grid-cols-3 gap-3">
+              {[0, 1, 2].map((index) => (
+                <div key={index} className="relative">
+                  {editImagePreviews[index] ? (
+                    <div className="relative group">
+                      <div className="rounded-xl overflow-hidden border border-beige-dark/30 bg-warm-white">
+                        <img src={editImagePreviews[index]!} alt={`preview ${index + 1}`} className="w-full h-auto aspect-[2/3] object-cover" />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveEditImage(index)}
+                        className="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-md hover:bg-red-600"
+                      >
+                        ✕
+                      </button>
+                      <label className="absolute bottom-1 left-1 bg-charcoal/70 hover:bg-charcoal/90 text-white text-[10px] px-1.5 py-0.5 rounded-md cursor-pointer transition-colors">
+                        🔄
+                        <input
+                          type="file"
+                          accept=".jpg,.jpeg,.png,.webp"
+                          className="hidden"
+                          onChange={(e) => handleImageChange(index, e)}
+                        />
+                      </label>
+                    </div>
+                  ) : (
+                    <label className="flex flex-col items-center justify-center aspect-[2/3] border-2 border-dashed border-beige-dark/50 hover:border-brown rounded-xl bg-warm-white hover:bg-beige/30 cursor-pointer transition-all group">
+                      <div className="text-2xl mb-1 group-hover:scale-110 transition-transform">📷</div>
+                      <span className="text-[10px] text-charcoal-light font-medium">사진 {index + 1}</span>
+                      <input
+                        type="file"
+                        accept=".jpg,.jpeg,.png,.webp"
+                        className="hidden"
+                        onChange={(e) => handleImageChange(index, e)}
+                      />
+                    </label>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Image Feedback */}
+          <div className="bg-[#F0F7FF] p-4 rounded-xl border-2 border-blue-200 shadow-2xs">
+            <label className="block text-xs font-bold text-blue-800 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+              <span>💬 그림 피드백</span>
+              <span className="text-[10px] font-normal text-blue-600/70">(수정 사항 / 피드백 의견)</span>
+            </label>
+            <textarea
+              value={editImageFeedback}
+              onChange={(e) => setEditImageFeedback(e.target.value)}
+              rows={4}
+              placeholder="생성된 이미지에 대한 피드백이나 수정 요청 사항을 적어주세요..."
+              className="w-full px-4 py-3 bg-white border border-blue-200 focus:border-blue-500 rounded-xl text-charcoal resize-y placeholder:text-charcoal-light/40 leading-relaxed font-medium"
             />
           </div>
 

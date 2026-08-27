@@ -22,9 +22,10 @@ export default function NewCardPage() {
   const [keywords, setKeywords] = useState('');
   const [oneLine, setOneLine] = useState('');
   const [notes, setNotes] = useState('');
+  const [imageFeedback, setImageFeedback] = useState('');
   const [status, setStatus] = useState<CardStatus>('todo');
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imageFiles, setImageFiles] = useState<(File | null)[]>([null, null, null]);
+  const [imagePreviews, setImagePreviews] = useState<(string | null)[]>([null, null, null]);
 
   useEffect(() => {
     const fetchDeck = async () => {
@@ -39,7 +40,7 @@ export default function NewCardPage() {
     fetchDeck();
   }, [deckId]);
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -49,8 +50,24 @@ export default function NewCardPage() {
       return;
     }
 
-    setImageFile(file);
-    setImagePreview(URL.createObjectURL(file));
+    const newFiles = [...imageFiles];
+    newFiles[index] = file;
+    setImageFiles(newFiles);
+
+    const newPreviews = [...imagePreviews];
+    newPreviews[index] = URL.createObjectURL(file);
+    setImagePreviews(newPreviews);
+  };
+
+  const handleRemoveImage = (index: number) => {
+    const newFiles = [...imageFiles];
+    newFiles[index] = null;
+    setImageFiles(newFiles);
+
+    const newPreviews = [...imagePreviews];
+    if (newPreviews[index]) URL.revokeObjectURL(newPreviews[index]!);
+    newPreviews[index] = null;
+    setImagePreviews(newPreviews);
   };
 
   const handleSave = async () => {
@@ -72,6 +89,7 @@ export default function NewCardPage() {
         keywords: keywords.trim() || null,
         one_line: oneLine.trim() || null,
         notes: notes.trim() || null,
+        image_feedback: imageFeedback.trim() || null,
         status,
       })
       .select()
@@ -84,29 +102,38 @@ export default function NewCardPage() {
       return;
     }
 
-    // Upload image if provided
-    if (imageFile) {
-      const ext = imageFile.name.split('.').pop();
-      const fileName = `${deckId}/${newCard.id}_${Date.now()}.${ext}`;
+    // Upload images if provided (up to 3)
+    const imageUrlFields = ['image_url', 'image_url_2', 'image_url_3'] as const;
+    const uploadedUrls: Record<string, string> = {};
+
+    for (let i = 0; i < 3; i++) {
+      const file = imageFiles[i];
+      if (!file) continue;
+
+      const ext = file.name.split('.').pop();
+      const fileName = `${deckId}/${newCard.id}_${i + 1}_${Date.now()}.${ext}`;
 
       const { error: uploadError } = await supabase.storage
         .from('card-images')
-        .upload(fileName, imageFile);
+        .upload(fileName, file);
 
       if (uploadError) {
-        console.error('Image upload error:', uploadError);
-        // Card is created but image failed - continue anyway
-      } else {
-        const { data: urlData } = supabase.storage
-          .from('card-images')
-          .getPublicUrl(fileName);
-
-        // Update card with image URL
-        await supabase
-          .from('cards')
-          .update({ image_url: urlData.publicUrl })
-          .eq('id', newCard.id);
+        console.error(`Image ${i + 1} upload error:`, uploadError);
+        continue;
       }
+
+      const { data: urlData } = supabase.storage
+        .from('card-images')
+        .getPublicUrl(fileName);
+
+      uploadedUrls[imageUrlFields[i]] = urlData.publicUrl;
+    }
+
+    if (Object.keys(uploadedUrls).length > 0) {
+      await supabase
+        .from('cards')
+        .update(uploadedUrls)
+        .eq('id', newCard.id);
     }
 
     router.push(`/deck/${deckId}`);
@@ -166,21 +193,59 @@ export default function NewCardPage() {
             />
           </div>
 
-          {/* Image */}
+          {/* Images (up to 3) */}
           <div>
             <label className="block text-xs font-semibold text-charcoal-light uppercase tracking-widest mb-2">
-              카드 이미지
+              카드 이미지 (최대 3장)
             </label>
-            {imagePreview && (
-              <div className="mb-3 w-40 rounded-xl overflow-hidden border border-beige-dark/30">
-                <img src={imagePreview} alt="preview" className="w-full h-auto" />
-              </div>
-            )}
-            <input
-              type="file"
-              accept=".jpg,.jpeg,.png,.webp"
-              onChange={handleImageChange}
-              className="text-sm text-charcoal-light file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-beige file:text-charcoal file:font-medium file:cursor-pointer hover:file:bg-beige-dark"
+            <div className="grid grid-cols-3 gap-3">
+              {[0, 1, 2].map((index) => (
+                <div key={index} className="relative">
+                  {imagePreviews[index] ? (
+                    <div className="relative group">
+                      <div className="rounded-xl overflow-hidden border border-beige-dark/30 bg-warm-white">
+                        <img src={imagePreviews[index]!} alt={`preview ${index + 1}`} className="w-full h-auto aspect-[2/3] object-cover" />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveImage(index)}
+                        className="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-md hover:bg-red-600"
+                      >
+                        ✕
+                      </button>
+                      <span className="absolute bottom-1 left-1 bg-charcoal/70 text-white text-[10px] px-1.5 py-0.5 rounded-md">
+                        {index + 1}
+                      </span>
+                    </div>
+                  ) : (
+                    <label className="flex flex-col items-center justify-center aspect-[2/3] border-2 border-dashed border-beige-dark/50 hover:border-brown rounded-xl bg-warm-white hover:bg-beige/30 cursor-pointer transition-all group">
+                      <div className="text-2xl mb-1 group-hover:scale-110 transition-transform">📷</div>
+                      <span className="text-[10px] text-charcoal-light font-medium">사진 {index + 1}</span>
+                      <input
+                        type="file"
+                        accept=".jpg,.jpeg,.png,.webp"
+                        className="hidden"
+                        onChange={(e) => handleImageChange(index, e)}
+                      />
+                    </label>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Image Feedback */}
+          <div className="bg-[#F0F7FF] p-4 rounded-xl border-2 border-blue-200 shadow-2xs">
+            <label className="block text-xs font-bold text-blue-800 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+              <span>💬 그림 피드백</span>
+              <span className="text-[10px] font-normal text-blue-600/70">(수정 사항 / 피드백 의견)</span>
+            </label>
+            <textarea
+              value={imageFeedback}
+              onChange={(e) => setImageFeedback(e.target.value)}
+              rows={4}
+              placeholder="생성된 이미지에 대한 피드백이나 수정 요청 사항을 적어주세요..."
+              className="w-full px-4 py-3 bg-white border border-blue-200 focus:border-blue-500 rounded-xl text-charcoal resize-y placeholder:text-charcoal-light/40 leading-relaxed font-medium"
             />
           </div>
 

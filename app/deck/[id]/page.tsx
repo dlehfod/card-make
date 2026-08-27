@@ -18,7 +18,6 @@ export default function DeckPage() {
   // Accordion: which card is currently expanded (or null)
   const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
 
-  // Card Editing inside accordion
   const [editingCardId, setEditingCardId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<{
     card_number: string;
@@ -27,7 +26,9 @@ export default function DeckPage() {
     keywords: string;
     one_line: string;
     notes: string;
+    image_feedback: string;
     status: CardStatus;
+    read_request_by: 'doyoung' | 'hyojae' | null;
   }>({
     card_number: '',
     name: '',
@@ -35,7 +36,9 @@ export default function DeckPage() {
     keywords: '',
     one_line: '',
     notes: '',
+    image_feedback: '',
     status: 'todo',
+    read_request_by: null,
   });
   const [savingCard, setSavingCard] = useState(false);
 
@@ -48,23 +51,27 @@ export default function DeckPage() {
     keywords: '',
     one_line: '',
     notes: '',
+    image_feedback: '',
     status: 'todo' as CardStatus,
   });
   const [creatingCard, setCreatingCard] = useState(false);
   const [uploadingCardId, setUploadingCardId] = useState<string | null>(null);
 
-  // Upload card image directly from computer
-  const handleUploadCardImage = async (cardId: string, file: File) => {
+  // Upload card image to specific slot (0, 1, 2)
+  const handleUploadCardImage = async (cardId: string, file: File, slot: number = 0) => {
     const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
     if (!validTypes.includes(file.type)) {
       alert('JPG, PNG, WEBP, GIF 이미지 파일만 업로드할 수 있습니다.');
       return;
     }
 
+    const imageUrlFields = ['image_url', 'image_url_2', 'image_url_3'] as const;
+    const fieldName = imageUrlFields[slot];
+
     setUploadingCardId(cardId);
     try {
       const ext = file.name.split('.').pop() || 'png';
-      const fileName = `${deckId}/${cardId}_${Date.now()}.${ext}`;
+      const fileName = `${deckId}/${cardId}_${slot + 1}_${Date.now()}.${ext}`;
 
       const { error: uploadError } = await supabase.storage
         .from('card-images')
@@ -86,14 +93,14 @@ export default function DeckPage() {
       // Update card in database
       const { error: updateError } = await supabase
         .from('cards')
-        .update({ image_url: publicUrl })
+        .update({ [fieldName]: publicUrl })
         .eq('id', cardId);
 
       if (updateError) {
         alert('카드 정보 업데이트에 실패했습니다.');
       } else {
         setCards((prev) =>
-          prev.map((c) => (c.id === cardId ? { ...c, image_url: publicUrl } : c))
+          prev.map((c) => (c.id === cardId ? { ...c, [fieldName]: publicUrl } : c))
         );
       }
     } catch (err) {
@@ -104,17 +111,19 @@ export default function DeckPage() {
     }
   };
 
-  // Remove card image
-  const handleRemoveCardImage = async (cardId: string) => {
+  // Remove card image from specific slot
+  const handleRemoveCardImage = async (cardId: string, slot: number = 0) => {
     if (!window.confirm('등록된 이미지를 삭제하시겠습니까?')) return;
+    const imageUrlFields = ['image_url', 'image_url_2', 'image_url_3'] as const;
+    const fieldName = imageUrlFields[slot];
     const { error } = await supabase
       .from('cards')
-      .update({ image_url: null })
+      .update({ [fieldName]: null })
       .eq('id', cardId);
 
     if (!error) {
       setCards((prev) =>
-        prev.map((c) => (c.id === cardId ? { ...c, image_url: null } : c))
+        prev.map((c) => (c.id === cardId ? { ...c, [fieldName]: null } : c))
       );
     }
   };
@@ -167,7 +176,9 @@ export default function DeckPage() {
       keywords: card.keywords || '',
       one_line: card.one_line || '',
       notes: card.notes || '',
+      image_feedback: card.image_feedback || '',
       status: card.status,
+      read_request_by: null,
     });
   };
 
@@ -175,26 +186,49 @@ export default function DeckPage() {
   const handleSaveEdit = async (cardId: string) => {
     setSavingCard(true);
 
-    const { error } = await supabase
+    const updateData: Record<string, unknown> = {
+      card_number: editForm.card_number.trim(),
+      name: editForm.name.trim(),
+      meaning: editForm.meaning.trim() || null,
+      keywords: editForm.keywords.trim() || null,
+      one_line: editForm.one_line.trim() || null,
+      notes: editForm.notes.trim() || null,
+      image_feedback: editForm.image_feedback.trim() || null,
+      status: editForm.status,
+    };
+
+    if (editForm.read_request_by) {
+      const editor = editForm.read_request_by;
+      updateData.notes_last_editor = editor;
+      updateData.feedback_last_editor = editor;
+      if (editor === 'doyoung') {
+        updateData.notes_read_by_doyoung = true;
+        updateData.notes_read_by_hyojae = false;
+        updateData.feedback_read_by_doyoung = true;
+        updateData.feedback_read_by_hyojae = false;
+      } else {
+        updateData.notes_read_by_doyoung = false;
+        updateData.notes_read_by_hyojae = true;
+        updateData.feedback_read_by_doyoung = false;
+        updateData.feedback_read_by_hyojae = true;
+      }
+    }
+
+    const result = await supabase
       .from('cards')
-      .update({
-        card_number: editForm.card_number.trim(),
-        name: editForm.name.trim(),
-        meaning: editForm.meaning.trim() || null,
-        keywords: editForm.keywords.trim() || null,
-        one_line: editForm.one_line.trim() || null,
-        notes: editForm.notes.trim() || null,
-        status: editForm.status,
-      })
+      .update(updateData)
       .eq('id', cardId);
 
-    if (error) {
-      alert('저장에 실패했습니다.');
-    } else {
-      setEditingCardId(null);
-      await fetchCards();
+    if (result.error && result.error.message) {
+      console.error('Save error:', JSON.stringify(result.error, null, 2));
+      alert(`저장 실패: ${result.error.message}`);
+      setSavingCard(false);
+      return;
     }
+    setEditingCardId(null);
+    setExpandedCardId(null);
     setSavingCard(false);
+    await fetchCards();
   };
 
   // Quick Status Change directly from view
@@ -207,6 +241,88 @@ export default function DeckPage() {
     if (!error) {
       setCards((prev) =>
         prev.map((c) => (c.id === card.id ? { ...c, status: newStatus } : c))
+      );
+    }
+  };
+
+  // Feedback: 읽음요청 (내가 수정했으니 상대방에게 읽어달라고 알림)
+  const handleFeedbackReadRequest = async (cardId: string, editor: 'doyoung' | 'hyojae') => {
+    const updateData: Record<string, unknown> = {
+      feedback_last_editor: editor,
+    };
+    if (editor === 'doyoung') {
+      updateData.feedback_read_by_hyojae = false;
+      updateData.feedback_read_by_doyoung = true;
+    } else {
+      updateData.feedback_read_by_doyoung = false;
+      updateData.feedback_read_by_hyojae = true;
+    }
+
+    const { error } = await supabase
+      .from('cards')
+      .update(updateData)
+      .eq('id', cardId);
+
+    if (!error) {
+      setCards((prev) =>
+        prev.map((c) => (c.id === cardId ? { ...c, ...updateData } as Card : c))
+      );
+    }
+  };
+
+  // Feedback: 읽음확인 (내가 읽었다고 표시)
+  const handleFeedbackReadConfirm = async (cardId: string, reader: 'doyoung' | 'hyojae') => {
+    const fieldName = reader === 'doyoung' ? 'feedback_read_by_doyoung' : 'feedback_read_by_hyojae';
+
+    const { error } = await supabase
+      .from('cards')
+      .update({ [fieldName]: true })
+      .eq('id', cardId);
+
+    if (!error) {
+      setCards((prev) =>
+        prev.map((c) => (c.id === cardId ? { ...c, [fieldName]: true } as Card : c))
+      );
+    }
+  };
+
+  // Notes(이미지 설명): 읽음요청
+  const handleNotesReadRequest = async (cardId: string, editor: 'doyoung' | 'hyojae') => {
+    const updateData: Record<string, unknown> = {
+      notes_last_editor: editor,
+    };
+    if (editor === 'doyoung') {
+      updateData.notes_read_by_hyojae = false;
+      updateData.notes_read_by_doyoung = true;
+    } else {
+      updateData.notes_read_by_doyoung = false;
+      updateData.notes_read_by_hyojae = true;
+    }
+
+    const { error } = await supabase
+      .from('cards')
+      .update(updateData)
+      .eq('id', cardId);
+
+    if (!error) {
+      setCards((prev) =>
+        prev.map((c) => (c.id === cardId ? { ...c, ...updateData } as Card : c))
+      );
+    }
+  };
+
+  // Notes(이미지 설명): 읽음확인
+  const handleNotesReadConfirm = async (cardId: string, reader: 'doyoung' | 'hyojae') => {
+    const fieldName = reader === 'doyoung' ? 'notes_read_by_doyoung' : 'notes_read_by_hyojae';
+
+    const { error } = await supabase
+      .from('cards')
+      .update({ [fieldName]: true })
+      .eq('id', cardId);
+
+    if (!error) {
+      setCards((prev) =>
+        prev.map((c) => (c.id === cardId ? { ...c, [fieldName]: true } as Card : c))
       );
     }
   };
@@ -239,6 +355,7 @@ export default function DeckPage() {
         keywords: newCard.keywords.trim() || null,
         one_line: newCard.one_line.trim() || null,
         notes: newCard.notes.trim() || null,
+        image_feedback: newCard.image_feedback.trim() || null,
         status: newCard.status,
       })
       .select()
@@ -258,6 +375,7 @@ export default function DeckPage() {
       keywords: '',
       one_line: '',
       notes: '',
+      image_feedback: '',
       status: 'todo',
     });
     setShowAddCard(false);
@@ -311,6 +429,9 @@ export default function DeckPage() {
         }
         if (card.notes) {
           content += `■ 카드 이미지 설명:\n${card.notes}\n\n`;
+        }
+        if (card.image_feedback) {
+          content += `■ 그림 피드백:\n${card.image_feedback}\n\n`;
         }
         content += `\n`;
       });
@@ -478,6 +599,20 @@ export default function DeckPage() {
                 />
               </div>
 
+              <div className="bg-[#F0F7FF] p-3.5 rounded-xl border border-blue-200 shadow-2xs">
+                <label className="block text-xs font-bold text-blue-800 mb-1.5 flex items-center gap-1.5">
+                  <span>💬 그림 피드백</span>
+                  <span className="text-[10px] font-normal text-blue-600/70">(수정 사항 / 피드백 의견)</span>
+                </label>
+                <textarea
+                  value={newCard.image_feedback}
+                  onChange={(e) => setNewCard({ ...newCard, image_feedback: e.target.value })}
+                  rows={3}
+                  placeholder="생성된 이미지에 대한 피드백이나 수정 요청 사항을 적어주세요..."
+                  className="w-full px-3 py-2 bg-white border border-blue-200 focus:border-blue-500 rounded-lg text-sm text-charcoal leading-relaxed placeholder:text-charcoal-light/40"
+                />
+              </div>
+
               <div>
                 <label className="block text-[11px] font-semibold text-charcoal-light mb-1">작업 상태</label>
                 <div className="flex gap-2">
@@ -586,6 +721,16 @@ export default function DeckPage() {
                       )}
                     </div>
 
+                    {/* 읽어주세요 뱃지 */}
+                    {(
+                      (card.notes && (!card.notes_read_by_doyoung || !card.notes_read_by_hyojae)) ||
+                      (card.image_feedback && (!card.feedback_read_by_doyoung || !card.feedback_read_by_hyojae))
+                    ) && (
+                      <span className="text-[10px] px-2.5 py-1 rounded-full font-bold bg-red-500 text-white shrink-0 animate-pulse shadow-sm">
+                        📢 읽어주세요!
+                      </span>
+                    )}
+
                     {/* Status badge */}
                     <span
                       onClick={(e) => e.stopPropagation()}
@@ -637,23 +782,16 @@ export default function DeckPage() {
                             </div>
                           )}
 
-                          {/* One Line */}
-                          {card.one_line && (
-                            <div>
-                              <h4 className="text-[11px] font-bold text-charcoal-light tracking-wider uppercase mb-1">
-                                💬 한 줄 해석
-                              </h4>
-                              <p className="text-sm text-charcoal italic bg-beige/40 p-3 rounded-xl border border-beige-dark/30 font-medium">
-                                &ldquo;{card.one_line}&rdquo;
-                              </p>
-                            </div>
-                          )}
-
                           {/* Notes (Image Description) - Always Show */}
                           <div className="bg-gradient-to-br from-[#FAF7EE] to-[#F5EEE6] p-4 rounded-2xl border-2 border-brown/30 shadow-xs">
                             <h4 className="text-xs font-bold text-brown-dark tracking-wide mb-1.5 flex items-center gap-1.5">
                               <span>🖼️ 카드 이미지 설명</span>
                               <span className="text-[10px] font-normal text-brown/70">(비주얼 / 프롬프트)</span>
+                              {card.notes_last_editor && (
+                                <span className="text-[10px] bg-brown/10 text-brown-dark px-1.5 py-0.5 rounded-md font-medium ml-auto">
+                                  {card.notes_last_editor === 'doyoung' ? '점술신' : '로율'} 수정
+                                </span>
+                              )}
                             </h4>
                             {card.notes ? (
                               <p className="text-sm text-charcoal font-medium leading-relaxed whitespace-pre-wrap">
@@ -664,86 +802,116 @@ export default function DeckPage() {
                                 작성된 설명이 없습니다. (수정 버튼을 눌러 작성해주세요)
                               </p>
                             )}
+
                           </div>
 
-                          {/* Image Section (Upload & Preview) */}
+                          {/* Image Section (Upload & Preview) - 최대 3장 */}
                           <div className="bg-[#FAF8F5] p-4 rounded-2xl border border-brown/30 shadow-2xs space-y-3">
                             <div className="flex items-center justify-between">
                               <h4 className="text-xs font-bold text-brown-dark tracking-wide flex items-center gap-1.5">
-                                <span>🎨 카드 이미지</span>
-                                {card.image_url && (
-                                  <span className="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-bold">
-                                    등록 완료
-                                  </span>
-                                )}
+                                <span>🎨 카드 이미지 (최대 3장)</span>
+                                {(() => {
+                                  const count = [card.image_url, card.image_url_2, card.image_url_3].filter(Boolean).length;
+                                  return count > 0 ? (
+                                    <span className="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-bold">
+                                      {count}장 등록
+                                    </span>
+                                  ) : null;
+                                })()}
                               </h4>
                             </div>
 
-                            {card.image_url ? (
-                              <div className="space-y-3">
-                                <div className="max-w-xs mx-auto rounded-2xl overflow-hidden border-2 border-brown/30 shadow-md bg-warm-white">
-                                  <img
-                                    src={card.image_url}
-                                    alt={card.name}
-                                    className="w-full h-auto object-contain max-h-80 mx-auto"
-                                  />
-                                </div>
-                                <div className="flex items-center justify-center gap-2 pt-1">
-                                  <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 bg-beige hover:bg-beige-dark text-charcoal rounded-xl text-xs font-semibold border border-beige-dark/60 transition-colors shadow-2xs">
-                                    <span>🔄 다른 이미지로 교체 (내 PC에서 찾기)</span>
-                                    <input
-                                      type="file"
-                                      accept="image/*"
-                                      className="hidden"
-                                      disabled={uploadingCardId === card.id}
-                                      onChange={(e) => {
-                                        const file = e.target.files?.[0];
-                                        if (file) handleUploadCardImage(card.id, file);
-                                      }}
-                                    />
-                                  </label>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleRemoveCardImage(card.id)}
-                                    className="px-3 py-1.5 text-red-600 hover:bg-red-50 rounded-xl text-xs font-semibold border border-red-200 transition-colors"
-                                  >
-                                    🗑️ 삭제
-                                  </button>
-                                </div>
-                              </div>
-                            ) : (
-                              <div>
-                                <label className="flex flex-col items-center justify-center p-5 border-2 border-dashed border-brown/30 hover:border-brown rounded-2xl bg-white hover:bg-ivory/60 cursor-pointer transition-all group">
-                                  {uploadingCardId === card.id ? (
-                                    <div className="flex items-center gap-2 text-brown-dark font-medium text-xs py-2">
-                                      <span className="animate-spin text-base">⏳</span> 이미지 업로드 중...
+                            <div className="grid grid-cols-3 gap-3">
+                              {[
+                                { url: card.image_url, slot: 0 },
+                                { url: card.image_url_2, slot: 1 },
+                                { url: card.image_url_3, slot: 2 },
+                              ].map(({ url, slot }) => (
+                                <div key={slot} className="relative">
+                                  {url ? (
+                                    <div className="space-y-2">
+                                      <div className="rounded-xl overflow-hidden border-2 border-brown/30 shadow-md bg-warm-white">
+                                        <img
+                                          src={url}
+                                          alt={`${card.name} ${slot + 1}`}
+                                          className="w-full h-auto object-contain max-h-48"
+                                        />
+                                      </div>
+                                      <div className="flex items-center justify-center gap-1">
+                                        <label className="cursor-pointer inline-flex items-center gap-1 px-2 py-1 bg-beige hover:bg-beige-dark text-charcoal rounded-lg text-[10px] font-semibold border border-beige-dark/60 transition-colors">
+                                          <span>🔄</span>
+                                          <input
+                                            type="file"
+                                            accept="image/*"
+                                            className="hidden"
+                                            disabled={uploadingCardId === card.id}
+                                            onChange={(e) => {
+                                              const file = e.target.files?.[0];
+                                              if (file) handleUploadCardImage(card.id, file, slot);
+                                            }}
+                                          />
+                                        </label>
+                                        <button
+                                          type="button"
+                                          onClick={() => handleRemoveCardImage(card.id, slot)}
+                                          className="px-2 py-1 text-red-600 hover:bg-red-50 rounded-lg text-[10px] font-semibold border border-red-200 transition-colors"
+                                        >
+                                          🗑️
+                                        </button>
+                                      </div>
                                     </div>
                                   ) : (
-                                    <>
-                                      <div className="w-10 h-10 rounded-full bg-beige/60 flex items-center justify-center text-xl mb-2 group-hover:scale-110 transition-transform">
-                                        📁
-                                      </div>
-                                      <span className="text-xs font-bold text-charcoal group-hover:text-brown-dark">
-                                        내 PC(하드)에서 이미지 찾아 올리기
-                                      </span>
-                                      <span className="text-[11px] text-charcoal-light mt-1">
-                                        JPG, PNG, WEBP 지원 (클릭하여 파일 선택)
-                                      </span>
-                                    </>
+                                    <label className="flex flex-col items-center justify-center aspect-[2/3] border-2 border-dashed border-brown/30 hover:border-brown rounded-xl bg-white hover:bg-ivory/60 cursor-pointer transition-all group">
+                                      {uploadingCardId === card.id ? (
+                                        <div className="flex items-center gap-1 text-brown-dark font-medium text-[10px]">
+                                          <span className="animate-spin text-sm">⏳</span>
+                                        </div>
+                                      ) : (
+                                        <>
+                                          <div className="text-xl mb-1 group-hover:scale-110 transition-transform">📷</div>
+                                          <span className="text-[10px] font-bold text-charcoal group-hover:text-brown-dark">
+                                            사진 {slot + 1}
+                                          </span>
+                                        </>
+                                      )}
+                                      <input
+                                        type="file"
+                                        accept="image/*"
+                                        className="hidden"
+                                        disabled={uploadingCardId === card.id}
+                                        onChange={(e) => {
+                                          const file = e.target.files?.[0];
+                                          if (file) handleUploadCardImage(card.id, file, slot);
+                                        }}
+                                      />
+                                    </label>
                                   )}
-                                  <input
-                                    type="file"
-                                    accept="image/*"
-                                    className="hidden"
-                                    disabled={uploadingCardId === card.id}
-                                    onChange={(e) => {
-                                      const file = e.target.files?.[0];
-                                      if (file) handleUploadCardImage(card.id, file);
-                                    }}
-                                  />
-                                </label>
-                              </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Image Feedback - Always Show under Images */}
+                          <div className="bg-[#F0F7FF] p-4 rounded-2xl border-2 border-blue-200 shadow-xs">
+                            <h4 className="text-xs font-bold text-blue-800 tracking-wide mb-1.5 flex items-center gap-1.5">
+                              <span>💬 그림 피드백</span>
+                              <span className="text-[10px] font-normal text-blue-600/70">(수정 사항 / 피드백 의견)</span>
+                              {card.feedback_last_editor && (
+                                <span className="text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-md font-medium ml-auto">
+                                  {card.feedback_last_editor === 'doyoung' ? '점술신' : '로율'} 수정
+                                </span>
+                              )}
+                            </h4>
+                            {card.image_feedback ? (
+                              <p className="text-sm text-charcoal font-medium leading-relaxed whitespace-pre-wrap">
+                                {card.image_feedback}
+                              </p>
+                            ) : (
+                              <p className="text-xs text-charcoal-light/60 italic">
+                                작성된 피드백이 없습니다. (수정 버튼을 눌러 작성해주세요)
+                              </p>
                             )}
+
                           </div>
 
                           {/* Status quick toggle */}
@@ -856,57 +1024,83 @@ export default function DeckPage() {
                               className="w-full px-3 py-2 bg-white border border-brown/30 focus:border-brown-dark rounded-lg text-sm text-charcoal leading-relaxed placeholder:text-charcoal-light/40"
                             />
                             
-                            {/* Image Upload in Edit Mode */}
+                            {/* Image Upload in Edit Mode - 최대 3장 */}
                             <div className="mt-4 pt-4 border-t border-brown/20">
-                              <label className="block text-xs font-bold text-brown-dark mb-2">🎨 카드 이미지 업로드</label>
-                              {card.image_url ? (
-                                <div className="space-y-3">
-                                  <div className="w-32 rounded-xl overflow-hidden border-2 border-brown/30">
-                                    <img src={card.image_url} alt="preview" className="w-full h-auto" />
+                              <label className="block text-xs font-bold text-brown-dark mb-2">🎨 카드 이미지 업로드 (최대 3장)</label>
+                              <div className="grid grid-cols-3 gap-2">
+                                {[
+                                  { url: card.image_url, slot: 0 },
+                                  { url: card.image_url_2, slot: 1 },
+                                  { url: card.image_url_3, slot: 2 },
+                                ].map(({ url, slot }) => (
+                                  <div key={slot} className="relative">
+                                    {url ? (
+                                      <div className="space-y-1">
+                                        <div className="rounded-lg overflow-hidden border-2 border-brown/30">
+                                          <img src={url} alt={`preview ${slot + 1}`} className="w-full h-auto" />
+                                        </div>
+                                        <div className="flex items-center justify-center gap-1">
+                                          <label className="cursor-pointer inline-flex items-center gap-1 px-1.5 py-0.5 bg-white hover:bg-beige-dark text-charcoal rounded-md text-[10px] font-semibold border border-beige-dark/60 transition-colors">
+                                            <span>🔄</span>
+                                            <input
+                                              type="file"
+                                              accept="image/*"
+                                              className="hidden"
+                                              disabled={uploadingCardId === card.id}
+                                              onChange={(e) => {
+                                                const file = e.target.files?.[0];
+                                                if (file) handleUploadCardImage(card.id, file, slot);
+                                              }}
+                                            />
+                                          </label>
+                                          <button
+                                            type="button"
+                                            onClick={() => handleRemoveCardImage(card.id, slot)}
+                                            className="px-1.5 py-0.5 text-red-600 hover:bg-red-50 rounded-md text-[10px] font-semibold border border-red-200 transition-colors"
+                                          >
+                                            🗑️
+                                          </button>
+                                        </div>
+                                      </div>
+                                    ) : (
+                                      <label className="flex flex-col items-center justify-center aspect-[2/3] border-2 border-dashed border-brown/30 hover:border-brown rounded-lg bg-white cursor-pointer transition-all group">
+                                        {uploadingCardId === card.id ? (
+                                          <span className="text-[10px] font-medium text-brown-dark">⏳</span>
+                                        ) : (
+                                          <>
+                                            <span className="text-lg group-hover:scale-110 transition-transform">📷</span>
+                                            <span className="text-[9px] font-bold text-charcoal mt-0.5">사진 {slot + 1}</span>
+                                          </>
+                                        )}
+                                        <input
+                                          type="file"
+                                          accept="image/*"
+                                          className="hidden"
+                                          disabled={uploadingCardId === card.id}
+                                          onChange={(e) => {
+                                            const file = e.target.files?.[0];
+                                            if (file) handleUploadCardImage(card.id, file, slot);
+                                          }}
+                                        />
+                                      </label>
+                                    )}
                                   </div>
-                                  <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-beige-dark text-charcoal rounded-xl text-xs font-semibold border border-beige-dark/60 transition-colors">
-                                    <span>🔄 다른 이미지로 교체</span>
-                                    <input
-                                      type="file"
-                                      accept="image/*"
-                                      className="hidden"
-                                      disabled={uploadingCardId === card.id}
-                                      onChange={(e) => {
-                                        const file = e.target.files?.[0];
-                                        if (file) handleUploadCardImage(card.id, file);
-                                      }}
-                                    />
-                                  </label>
-                                </div>
-                              ) : (
-                                <label className="flex items-center justify-center p-4 border-2 border-dashed border-brown/30 hover:border-brown rounded-xl bg-white cursor-pointer transition-all">
-                                  {uploadingCardId === card.id ? (
-                                    <span className="text-xs font-medium text-brown-dark">업로드 중...⏳</span>
-                                  ) : (
-                                    <span className="text-xs font-bold text-charcoal">📁 내 PC에서 이미지 찾아 올리기</span>
-                                  )}
-                                  <input
-                                    type="file"
-                                    accept="image/*"
-                                    className="hidden"
-                                    disabled={uploadingCardId === card.id}
-                                    onChange={(e) => {
-                                      const file = e.target.files?.[0];
-                                      if (file) handleUploadCardImage(card.id, file);
-                                    }}
-                                  />
-                                </label>
-                              )}
+                                ))}
+                              </div>
                             </div>
                           </div>
 
-                          <div>
-                            <label className="block text-[11px] font-semibold text-charcoal-light mb-1">한 줄 해석 (복구됨)</label>
-                            <input
-                              type="text"
-                              value={editForm.one_line}
-                              onChange={(e) => setEditForm({ ...editForm, one_line: e.target.value })}
-                              className="w-full px-3 py-2 bg-ivory border border-beige-dark/60 rounded-lg text-sm text-charcoal"
+                          <div className="bg-[#F0F7FF] p-3.5 rounded-xl border-2 border-blue-200 shadow-2xs">
+                            <label className="block text-xs font-bold text-blue-800 mb-1.5 flex items-center gap-1.5">
+                              <span>💬 그림 피드백</span>
+                              <span className="text-[10px] font-normal text-blue-600/70">(수정 사항 / 피드백 의견)</span>
+                            </label>
+                            <textarea
+                              value={editForm.image_feedback}
+                              onChange={(e) => setEditForm({ ...editForm, image_feedback: e.target.value })}
+                              rows={4}
+                              placeholder="생성된 이미지에 대한 피드백이나 수정 요청 사항을 적어주세요..."
+                              className="w-full px-3 py-2 bg-white border border-blue-200 focus:border-blue-500 rounded-lg text-sm text-charcoal leading-relaxed placeholder:text-charcoal-light/40"
                             />
                           </div>
 
@@ -931,6 +1125,42 @@ export default function DeckPage() {
                                 </button>
                               ))}
                             </div>
+                          </div>
+
+                          {/* 읽음요청 - 저장 시 누가 수정했는지 선택 */}
+                          <div className="bg-gradient-to-r from-amber-50 to-blue-50 p-3 rounded-xl border border-amber-200/60">
+                            <label className="block text-[11px] font-bold text-charcoal mb-2">
+                              📢 읽음요청 (저장할 때 상대방에게 알림)
+                            </label>
+                            <div className="flex gap-2">
+                              <button
+                                type="button"
+                                onClick={() => setEditForm({ ...editForm, read_request_by: editForm.read_request_by === 'doyoung' ? null : 'doyoung' })}
+                                className={`flex-1 py-2 text-[11px] font-semibold rounded-lg border transition-colors ${
+                                  editForm.read_request_by === 'doyoung'
+                                    ? 'bg-amber-100 text-amber-900 border-amber-400 ring-2 ring-amber-300'
+                                    : 'bg-white text-charcoal-light border-beige-dark/50 hover:bg-beige'
+                                }`}
+                              >
+                                {editForm.read_request_by === 'doyoung' ? '✅ ' : ''}점술신이 수정함
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setEditForm({ ...editForm, read_request_by: editForm.read_request_by === 'hyojae' ? null : 'hyojae' })}
+                                className={`flex-1 py-2 text-[11px] font-semibold rounded-lg border transition-colors ${
+                                  editForm.read_request_by === 'hyojae'
+                                    ? 'bg-amber-100 text-amber-900 border-amber-400 ring-2 ring-amber-300'
+                                    : 'bg-white text-charcoal-light border-beige-dark/50 hover:bg-beige'
+                                }`}
+                              >
+                                {editForm.read_request_by === 'hyojae' ? '✅ ' : ''}로율이 수정함
+                              </button>
+                            </div>
+                            {editForm.read_request_by && (
+                              <p className="text-[10px] text-amber-700 mt-1.5 font-medium">
+                                저장하면 카드 목록에 📢 읽어주세요! 표시가 뜹니다
+                              </p>
+                            )}
                           </div>
 
                           <div className="flex gap-2 pt-2">

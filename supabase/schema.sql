@@ -16,10 +16,19 @@ CREATE TABLE IF NOT EXISTS cards (
   card_number TEXT NOT NULL,
   name TEXT NOT NULL,
   image_url TEXT,
+  image_url_2 TEXT,
+  image_url_3 TEXT,
   meaning TEXT,
   keywords TEXT,
   one_line TEXT,
   notes TEXT,
+  image_feedback TEXT,
+  notes_last_editor TEXT,
+  notes_read_by_doyoung BOOLEAN DEFAULT true,
+  notes_read_by_hyojae BOOLEAN DEFAULT true,
+  feedback_last_editor TEXT,
+  feedback_read_by_doyoung BOOLEAN DEFAULT true,
+  feedback_read_by_hyojae BOOLEAN DEFAULT true,
   status TEXT NOT NULL DEFAULT 'todo' CHECK (status IN ('todo', 'working', 'done')),
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
@@ -107,3 +116,17 @@ CREATE POLICY "Allow all access to roadmaps" ON roadmaps
 INSERT INTO roadmaps (id, main_goal, target_date, sub_goals)
 VALUES ('main', '타로 덱 제작 및 완성', null, '[]'::jsonb)
 ON CONFLICT (id) DO NOTHING;
+
+-- 9. Migration: Add image_url_2, image_url_3 columns to cards table
+-- Run this SQL in Supabase SQL Editor if you already have the cards table:
+ALTER TABLE cards ADD COLUMN IF NOT EXISTS image_url_2 TEXT;
+ALTER TABLE cards ADD COLUMN IF NOT EXISTS image_url_3 TEXT;
+
+-- 10. Migration: Add image_feedback + NEW badge tracking columns
+ALTER TABLE cards ADD COLUMN IF NOT EXISTS image_feedback TEXT;
+ALTER TABLE cards ADD COLUMN IF NOT EXISTS notes_last_editor TEXT;
+ALTER TABLE cards ADD COLUMN IF NOT EXISTS notes_read_by_doyoung BOOLEAN DEFAULT true;
+ALTER TABLE cards ADD COLUMN IF NOT EXISTS notes_read_by_hyojae BOOLEAN DEFAULT true;
+ALTER TABLE cards ADD COLUMN IF NOT EXISTS feedback_last_editor TEXT;
+ALTER TABLE cards ADD COLUMN IF NOT EXISTS feedback_read_by_doyoung BOOLEAN DEFAULT true;
+ALTER TABLE cards ADD COLUMN IF NOT EXISTS feedback_read_by_hyojae BOOLEAN DEFAULT true;
