@@ -762,8 +762,8 @@ export default function DeckPage() {
 
                     {/* 읽어주세요 뱃지 */}
                     {(
-                      (!card.notes_read_by_doyoung || !card.notes_read_by_hyojae) ||
-                      (!card.feedback_read_by_doyoung || !card.feedback_read_by_hyojae)
+                      (card.notes_read_by_doyoung === false || card.notes_read_by_hyojae === false) ||
+                      (card.feedback_read_by_doyoung === false || card.feedback_read_by_hyojae === false)
                     ) && (
                       <span className="text-[10px] px-2.5 py-1 rounded-full font-bold bg-red-500 text-white shrink-0 animate-pulse shadow-sm">
                         📢 읽어주세요!
@@ -958,7 +958,7 @@ export default function DeckPage() {
                           </div>
 
                           {/* 통합 읽음확인 체크박스 */}
-                          {(!card.notes_read_by_doyoung || !card.notes_read_by_hyojae || !card.feedback_read_by_doyoung || !card.feedback_read_by_hyojae) && (
+                          {(card.notes_read_by_doyoung === false || card.notes_read_by_hyojae === false || card.feedback_read_by_doyoung === false || card.feedback_read_by_hyojae === false) && (
                             <label
                               className="flex items-center gap-2 px-4 py-3 bg-emerald-50 border border-emerald-200 rounded-xl cursor-pointer hover:bg-emerald-100 transition-colors"
                               onClick={() => handleReadConfirmAll(card.id)}
