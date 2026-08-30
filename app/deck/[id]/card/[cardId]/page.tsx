@@ -12,6 +12,10 @@ export default function CardDetailPage() {
   const deckId = params.id as string;
   const cardId = params.cardId as string;
 
+  // Lightbox state for image zoom
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
+
   const [deck, setDeck] = useState<Deck | null>(null);
   const [card, setCard] = useState<Card | null>(null);
   const [loading, setLoading] = useState(true);
@@ -105,15 +109,21 @@ export default function CardDetailPage() {
         // New file selected for this slot
         const file = editImages[i]!;
         const ext = file.name.split('.').pop();
-        const fileName = `${deckId}/${cardId}_${i + 1}_${Date.now()}.${ext}`;
+        const randomSuffix = Math.random().toString(36).substring(2, 8);
+        const fileName = `${deckId}/${cardId}_${i + 1}_${Date.now()}_${randomSuffix}.${ext}`;
+
+        console.log(`Uploading image ${i + 1}: ${fileName}, size: ${file.size}, type: ${file.type}`);
 
         const { error } = await supabase.storage
           .from('card-images')
-          .upload(fileName, file, { upsert: true });
+          .upload(fileName, file, {
+            cacheControl: '3600',
+            upsert: true,
+          });
 
         if (error) {
           console.error(`Image ${i + 1} upload error:`, error);
-          alert(`이미지 ${i + 1} 업로드에 실패했습니다.`);
+          alert(`이미지 ${i + 1} 업로드에 실패했습니다: ${error.message}`);
           setSaving(false);
           return;
         }
@@ -123,6 +133,7 @@ export default function CardDetailPage() {
           .getPublicUrl(fileName);
 
         imageUrls[i] = data.publicUrl;
+        console.log(`Image ${i + 1} uploaded successfully: ${data.publicUrl}`);
       } else if (editImagePreviews[i] === null) {
         // Image was removed
         imageUrls[i] = null;
@@ -281,12 +292,24 @@ export default function CardDetailPage() {
               <div className={`grid gap-3 ${[card.image_url, card.image_url_2, card.image_url_3].filter(Boolean).length === 1 ? 'grid-cols-1 max-w-sm mx-auto' : [card.image_url, card.image_url_2, card.image_url_3].filter(Boolean).length === 2 ? 'grid-cols-2 max-w-lg mx-auto' : 'grid-cols-3 max-w-2xl mx-auto'}`}>
                 {[card.image_url, card.image_url_2, card.image_url_3].map((url, idx) =>
                   url ? (
-                    <div key={idx} className="rounded-2xl overflow-hidden shadow-lg bg-warm-white border border-beige-dark/30">
+                    <div
+                      key={idx}
+                      className="relative rounded-2xl overflow-hidden shadow-lg bg-warm-white border border-beige-dark/30 cursor-pointer hover:shadow-xl hover:scale-[1.02] transition-all duration-200"
+                      onClick={() => {
+                        const allUrls = [card.image_url, card.image_url_2, card.image_url_3].filter(Boolean) as string[];
+                        const realIdx = allUrls.indexOf(url);
+                        setLightboxIndex(realIdx >= 0 ? realIdx : 0);
+                        setLightboxOpen(true);
+                      }}
+                    >
                       <img
                         src={url}
                         alt={`${card.name} ${idx + 1}`}
                         className="w-full h-auto object-contain"
                       />
+                      <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity bg-black/10 rounded-2xl">
+                        <span className="text-white text-2xl drop-shadow-lg">🔍</span>
+                      </div>
                     </div>
                   ) : null
                 )}
@@ -381,6 +404,67 @@ export default function CardDetailPage() {
             </div>
           </div>
         </div>
+
+        {/* Lightbox Modal */}
+        {lightboxOpen && (() => {
+          const allUrls = [card.image_url, card.image_url_2, card.image_url_3].filter(Boolean) as string[];
+          if (allUrls.length === 0) return null;
+          return (
+            <div
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
+              onClick={() => setLightboxOpen(false)}
+            >
+              {/* Close button */}
+              <button
+                onClick={() => setLightboxOpen(false)}
+                className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/20 hover:bg-white/40 text-white text-xl flex items-center justify-center transition-colors z-10"
+              >
+                ✕
+              </button>
+
+              {/* Image counter */}
+              {allUrls.length > 1 && (
+                <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-black/50 text-white text-sm px-3 py-1 rounded-full font-medium z-10">
+                  {lightboxIndex + 1} / {allUrls.length}
+                </div>
+              )}
+
+              {/* Previous button */}
+              {allUrls.length > 1 && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setLightboxIndex((prev) => (prev - 1 + allUrls.length) % allUrls.length);
+                  }}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/20 hover:bg-white/40 text-white text-xl flex items-center justify-center transition-colors z-10"
+                >
+                  ‹
+                </button>
+              )}
+
+              {/* Image */}
+              <img
+                src={allUrls[lightboxIndex]}
+                alt={`${card.name} 확대`}
+                className="max-w-[90vw] max-h-[85vh] object-contain rounded-xl shadow-2xl"
+                onClick={(e) => e.stopPropagation()}
+              />
+
+              {/* Next button */}
+              {allUrls.length > 1 && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setLightboxIndex((prev) => (prev + 1) % allUrls.length);
+                  }}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/20 hover:bg-white/40 text-white text-xl flex items-center justify-center transition-colors z-10"
+                >
+                  ›
+                </button>
+              )}
+            </div>
+          );
+        })()}
       </main>
     );
   }

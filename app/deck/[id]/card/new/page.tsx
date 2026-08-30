@@ -111,14 +111,21 @@ export default function NewCardPage() {
       if (!file) continue;
 
       const ext = file.name.split('.').pop();
-      const fileName = `${deckId}/${newCard.id}_${i + 1}_${Date.now()}.${ext}`;
+      const randomSuffix = Math.random().toString(36).substring(2, 8);
+      const fileName = `${deckId}/${newCard.id}_${i + 1}_${Date.now()}_${randomSuffix}.${ext}`;
+
+      console.log(`Uploading image ${i + 1}: ${fileName}, size: ${file.size}, type: ${file.type}`);
 
       const { error: uploadError } = await supabase.storage
         .from('card-images')
-        .upload(fileName, file);
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: false,
+        });
 
       if (uploadError) {
         console.error(`Image ${i + 1} upload error:`, uploadError);
+        alert(`이미지 ${i + 1} 업로드 실패: ${uploadError.message}`);
         continue;
       }
 
@@ -127,6 +134,7 @@ export default function NewCardPage() {
         .getPublicUrl(fileName);
 
       uploadedUrls[imageUrlFields[i]] = urlData.publicUrl;
+      console.log(`Image ${i + 1} uploaded successfully: ${urlData.publicUrl}`);
     }
 
     if (Object.keys(uploadedUrls).length > 0) {

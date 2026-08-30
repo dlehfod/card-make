@@ -57,6 +57,11 @@ export default function DeckPage() {
   const [creatingCard, setCreatingCard] = useState(false);
   const [uploadingCardId, setUploadingCardId] = useState<string | null>(null);
 
+  // Lightbox state for image zoom
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxUrls, setLightboxUrls] = useState<string[]>([]);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
+
   // Upload card image to specific slot (0, 1, 2)
   const handleUploadCardImage = async (cardId: string, file: File, slot: number = 0) => {
     const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
@@ -91,13 +96,15 @@ export default function DeckPage() {
       const publicUrl = urlData.publicUrl;
 
       // Update card in database
+      console.log(`Updating card ${cardId}, field: ${fieldName}, url: ${publicUrl}`);
       const { error: updateError } = await supabase
         .from('cards')
         .update({ [fieldName]: publicUrl })
         .eq('id', cardId);
 
       if (updateError) {
-        alert('카드 정보 업데이트에 실패했습니다.');
+        console.error('Card update error:', JSON.stringify(updateError, null, 2));
+        alert(`카드 정보 업데이트에 실패했습니다.\n\n필드: ${fieldName}\n에러: ${updateError.message}\n코드: ${updateError.code || '없음'}`);
       } else {
         setCards((prev) =>
           prev.map((c) => (c.id === cardId ? { ...c, [fieldName]: publicUrl } : c))
@@ -493,6 +500,7 @@ export default function DeckPage() {
   }
 
   return (
+    <>
     <main className="flex-1 pb-16">
       {/* Header */}
       <header className="border-b border-beige-dark/50 bg-warm-white sticky top-0 z-30 shadow-xs">
@@ -754,8 +762,8 @@ export default function DeckPage() {
 
                     {/* 읽어주세요 뱃지 */}
                     {(
-                      (card.notes && (!card.notes_read_by_doyoung || !card.notes_read_by_hyojae)) ||
-                      (card.image_feedback && (!card.feedback_read_by_doyoung || !card.feedback_read_by_hyojae))
+                      (card.notes_read_by_doyoung === false || card.notes_read_by_hyojae === false) ||
+                      (card.feedback_read_by_doyoung === false || card.feedback_read_by_hyojae === false)
                     ) && (
                       <span className="text-[10px] px-2.5 py-1 rounded-full font-bold bg-red-500 text-white shrink-0 animate-pulse shadow-sm">
                         📢 읽어주세요!
@@ -857,12 +865,24 @@ export default function DeckPage() {
                                 <div key={slot} className="relative">
                                   {url ? (
                                     <div className="space-y-2">
-                                      <div className="rounded-xl overflow-hidden border-2 border-brown/30 shadow-md bg-warm-white">
+                                      <div
+                                        className="rounded-xl overflow-hidden border-2 border-brown/30 shadow-md bg-warm-white cursor-pointer hover:shadow-lg hover:scale-[1.02] transition-all duration-200 relative"
+                                        onClick={() => {
+                                          const allUrls = [card.image_url, card.image_url_2, card.image_url_3].filter(Boolean) as string[];
+                                          const realIdx = allUrls.indexOf(url);
+                                          setLightboxUrls(allUrls);
+                                          setLightboxIndex(realIdx >= 0 ? realIdx : 0);
+                                          setLightboxOpen(true);
+                                        }}
+                                      >
                                         <img
                                           src={url}
                                           alt={`${card.name} ${slot + 1}`}
                                           className="w-full h-auto object-contain max-h-48"
                                         />
+                                        <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity bg-black/10 rounded-xl">
+                                          <span className="text-white text-xl drop-shadow-lg">🔍</span>
+                                        </div>
                                       </div>
                                       <div className="flex items-center justify-center gap-1">
                                         <label className="cursor-pointer inline-flex items-center gap-1 px-2 py-1 bg-beige hover:bg-beige-dark text-charcoal rounded-lg text-[10px] font-semibold border border-beige-dark/60 transition-colors">
@@ -938,7 +958,7 @@ export default function DeckPage() {
                           </div>
 
                           {/* 통합 읽음확인 체크박스 */}
-                          {(!card.notes_read_by_doyoung || !card.notes_read_by_hyojae || !card.feedback_read_by_doyoung || !card.feedback_read_by_hyojae) && (
+                          {(card.notes_read_by_doyoung === false || card.notes_read_by_hyojae === false || card.feedback_read_by_doyoung === false || card.feedback_read_by_hyojae === false) && (
                             <label
                               className="flex items-center gap-2 px-4 py-3 bg-emerald-50 border border-emerald-200 rounded-xl cursor-pointer hover:bg-emerald-100 transition-colors"
                               onClick={() => handleReadConfirmAll(card.id)}
@@ -1226,5 +1246,63 @@ export default function DeckPage() {
         )}
       </div>
     </main>
+
+    {/* Lightbox Modal */}
+    {lightboxOpen && lightboxUrls.length > 0 && (
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
+        onClick={() => setLightboxOpen(false)}
+      >
+        {/* Close button */}
+        <button
+          onClick={() => setLightboxOpen(false)}
+          className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/20 hover:bg-white/40 text-white text-xl flex items-center justify-center transition-colors z-10"
+        >
+          ✕
+        </button>
+
+        {/* Image counter */}
+        {lightboxUrls.length > 1 && (
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-black/50 text-white text-sm px-3 py-1 rounded-full font-medium z-10">
+            {lightboxIndex + 1} / {lightboxUrls.length}
+          </div>
+        )}
+
+        {/* Previous button */}
+        {lightboxUrls.length > 1 && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setLightboxIndex((prev) => (prev - 1 + lightboxUrls.length) % lightboxUrls.length);
+            }}
+            className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/20 hover:bg-white/40 text-white text-xl flex items-center justify-center transition-colors z-10"
+          >
+            ‹
+          </button>
+        )}
+
+        {/* Image */}
+        <img
+          src={lightboxUrls[lightboxIndex]}
+          alt="확대 이미지"
+          className="max-w-[90vw] max-h-[85vh] object-contain rounded-xl shadow-2xl"
+          onClick={(e) => e.stopPropagation()}
+        />
+
+        {/* Next button */}
+        {lightboxUrls.length > 1 && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setLightboxIndex((prev) => (prev + 1) % lightboxUrls.length);
+            }}
+            className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/20 hover:bg-white/40 text-white text-xl flex items-center justify-center transition-colors z-10"
+          >
+            ›
+          </button>
+        )}
+      </div>
+    )}
+    </>
   );
 }
