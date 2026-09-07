@@ -13,6 +13,7 @@ export interface Card {
   image_url: string | null;
   image_url_2: string | null;
   image_url_3: string | null;
+  thumbnail_index: number | null;
   meaning: string | null;
   keywords: string | null;
   one_line: string | null;

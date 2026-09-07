@@ -118,6 +118,20 @@ export default function DeckPage() {
     }
   };
 
+  // Set thumbnail (대표 이미지 지정)
+  const handleSetThumbnail = async (cardId: string, slot: number) => {
+    const { error } = await supabase
+      .from('cards')
+      .update({ thumbnail_index: slot })
+      .eq('id', cardId);
+
+    if (!error) {
+      setCards((prev) =>
+        prev.map((c) => (c.id === cardId ? { ...c, thumbnail_index: slot } : c))
+      );
+    }
+  };
+
   // Remove card image from specific slot
   const handleRemoveCardImage = async (cardId: string, slot: number = 0) => {
     if (!window.confirm('등록된 이미지를 삭제하시겠습니까?')) return;
@@ -731,9 +745,18 @@ export default function DeckPage() {
                     className="flex items-center gap-3 px-5 py-4 cursor-pointer select-none hover:bg-ivory/50 transition-colors"
                   >
                     {/* Number Badge or Thumbnail */}
-                    {card.image_url ? (
+                    {(() => {
+                      const urls = [card.image_url, card.image_url_2, card.image_url_3];
+                      const thumbIdx = card.thumbnail_index || 0;
+                      const thumbUrl = urls[thumbIdx] || urls.find(Boolean);
+                      return thumbUrl;
+                    })() ? (
                       <div className="w-9 h-9 rounded-lg overflow-hidden border border-brown/30 shadow-2xs shrink-0 bg-charcoal">
-                        <img src={card.image_url} alt={card.name} className="w-full h-full object-cover" />
+                        <img src={(() => {
+                          const urls = [card.image_url, card.image_url_2, card.image_url_3];
+                          const thumbIdx = card.thumbnail_index || 0;
+                          return urls[thumbIdx] || urls.find(Boolean) || '';
+                        })()} alt={card.name} className="w-full h-full object-cover" />
                       </div>
                     ) : (
                       <span className="w-9 h-9 rounded-lg bg-beige/80 border border-beige-dark/40 flex items-center justify-center text-xs font-mono font-bold text-charcoal shrink-0">
@@ -884,7 +907,24 @@ export default function DeckPage() {
                                           <span className="text-white text-xl drop-shadow-lg">🔍</span>
                                         </div>
                                       </div>
+                                      {/* 대표 이미지 뱃지 */}
+                                      {(card.thumbnail_index || 0) === slot && (
+                                        <div className="absolute top-1 left-1 bg-gold text-white text-[9px] font-bold px-1.5 py-0.5 rounded-md shadow-sm z-10">
+                                          ⭐ 대표
+                                        </div>
+                                      )}
                                       <div className="flex items-center justify-center gap-1">
+                                        <button
+                                          type="button"
+                                          onClick={(e) => { e.stopPropagation(); handleSetThumbnail(card.id, slot); }}
+                                          className={`px-2 py-1 rounded-lg text-[10px] font-semibold border transition-colors ${
+                                            (card.thumbnail_index || 0) === slot
+                                              ? 'bg-gold/20 text-gold border-gold/50'
+                                              : 'bg-beige hover:bg-gold/10 text-charcoal-light border-beige-dark/60 hover:border-gold/50'
+                                          }`}
+                                        >
+                                          ⭐
+                                        </button>
                                         <label className="cursor-pointer inline-flex items-center gap-1 px-2 py-1 bg-beige hover:bg-beige-dark text-charcoal rounded-lg text-[10px] font-semibold border border-beige-dark/60 transition-colors">
                                           <span>🔄</span>
                                           <input

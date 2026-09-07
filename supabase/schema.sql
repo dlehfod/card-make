@@ -131,6 +131,9 @@ ALTER TABLE cards ADD COLUMN IF NOT EXISTS feedback_last_editor TEXT;
 ALTER TABLE cards ADD COLUMN IF NOT EXISTS feedback_read_by_doyoung BOOLEAN DEFAULT true;
 ALTER TABLE cards ADD COLUMN IF NOT EXISTS feedback_read_by_hyojae BOOLEAN DEFAULT true;
 
+-- 12. Migration: Add thumbnail_index column to cards table
+ALTER TABLE cards ADD COLUMN IF NOT EXISTS thumbnail_index INTEGER DEFAULT 0;
+
 -- 11. Create chat_messages table for KakaoTalk-style chat
 CREATE TABLE IF NOT EXISTS chat_messages (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
