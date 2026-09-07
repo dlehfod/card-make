@@ -271,7 +271,7 @@ export default function ChatBoard() {
             {(['doyoung', 'hyojae'] as Sender[]).map((sender) => {
               const info = PROFILE_INFO[sender];
               const myUnread = messages.filter(
-                (m) => m.sender !== sender && !m.is_read
+                (m) => m.sender === sender && !m.is_read
               ).length;
               return (
                 <button
