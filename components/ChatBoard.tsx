@@ -60,18 +60,9 @@ export default function ChatBoard() {
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Load user from localStorage on mount
-  useEffect(() => {
-    const saved = localStorage.getItem('tarot-lab-user');
-    if (saved === 'doyoung' || saved === 'hyojae') {
-      setCurrentUser(saved);
-    }
-  }, []);
-
-  // Save user to localStorage
+  // 매번 접속 시 사용자 선택 화면 표시 (localStorage 사용 안 함)
   const selectUser = (sender: Sender) => {
     setCurrentUser(sender);
-    localStorage.setItem('tarot-lab-user', sender);
   };
 
   // Fetch messages
@@ -244,7 +235,6 @@ export default function ChatBoard() {
   const handleSwitchUser = () => {
     if (window.confirm('사용자를 변경하시겠습니까?')) {
       setCurrentUser(null);
-      localStorage.removeItem('tarot-lab-user');
     }
   };
 
