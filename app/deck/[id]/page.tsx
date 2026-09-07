@@ -759,9 +759,9 @@ export default function DeckPage() {
                         })()} alt={card.name} className="w-full h-full object-cover" />
                       </div>
                     ) : (
-                      <span className="w-9 h-9 rounded-lg bg-beige/80 border border-beige-dark/40 flex items-center justify-center text-xs font-mono font-bold text-charcoal shrink-0">
-                        {card.card_number || '•'}
-                      </span>
+                      <div className="w-9 h-9 rounded-lg bg-charcoal/10 border border-beige-dark/40 flex items-center justify-center shrink-0">
+                        <span className="text-charcoal-light/40 text-sm">✕</span>
+                      </div>
                     )}
 
                     {/* Name & Quick keywords snippet */}
