@@ -767,7 +767,7 @@ export default function DeckPage() {
                     {/* Name & Quick keywords snippet */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        {card.image_url && card.card_number && (
+                        {card.card_number && (
                           <span className="text-[11px] font-mono font-bold text-brown px-1.5 py-0.5 bg-beige/60 rounded">
                             #{card.card_number}
                           </span>
