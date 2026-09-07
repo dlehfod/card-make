@@ -150,10 +150,11 @@ export default function ChatBoard() {
     setUnreadCount(count);
   }, [messages, currentUser]);
 
-  // Auto-scroll to bottom when new messages arrive
+  // Auto-scroll to bottom when new messages arrive (within chat container only)
   useEffect(() => {
-    if (isOpen && chatEndRef.current) {
-      chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    if (isOpen && chatContainerRef.current) {
+      const container = chatContainerRef.current;
+      container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
     }
   }, [messages, isOpen]);
 
@@ -307,8 +308,8 @@ export default function ChatBoard() {
           <div>
             <h3 className="text-base font-serif font-bold text-charcoal tracking-wide flex items-center gap-2">
               두 타로마스터의 대화
-              {!isOpen && unreadCount > 0 && (
-                <span className="new-badge inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 bg-red-500 text-white text-[10px] font-bold rounded-full shadow-sm">
+              {unreadCount > 0 && (
+                <span className="inline-flex items-center justify-center min-w-[28px] h-7 px-2.5 bg-red-500 text-white text-sm font-bold rounded-full shadow-md animate-pulse">
                   {unreadCount}
                 </span>
               )}
