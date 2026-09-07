@@ -130,24 +130,3 @@ ALTER TABLE cards ADD COLUMN IF NOT EXISTS notes_read_by_hyojae BOOLEAN DEFAULT 
 ALTER TABLE cards ADD COLUMN IF NOT EXISTS feedback_last_editor TEXT;
 ALTER TABLE cards ADD COLUMN IF NOT EXISTS feedback_read_by_doyoung BOOLEAN DEFAULT true;
 ALTER TABLE cards ADD COLUMN IF NOT EXISTS feedback_read_by_hyojae BOOLEAN DEFAULT true;
-
--- 11. Create chat_messages table for KakaoTalk-style chat
-CREATE TABLE IF NOT EXISTS chat_messages (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  sender TEXT NOT NULL CHECK (sender IN ('doyoung', 'hyojae')),
-  message TEXT NOT NULL,
-  is_read BOOLEAN DEFAULT false,
-  created_at TIMESTAMPTZ DEFAULT now()
-);
-
-CREATE INDEX IF NOT EXISTS idx_chat_messages_created_at ON chat_messages(created_at);
-
-ALTER TABLE chat_messages ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Allow all access to chat_messages" ON chat_messages
-  FOR ALL
-  USING (true)
-  WITH CHECK (true);
-
--- Enable Realtime for chat_messages
-ALTER PUBLICATION supabase_realtime ADD TABLE chat_messages;

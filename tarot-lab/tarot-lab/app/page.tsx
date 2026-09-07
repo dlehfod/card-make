@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { Deck } from '@/lib/types';
-import ChatBoard from '@/components/ChatBoard';
+import SharedMemoBoard from '@/components/SharedMemoBoard';
 import GoalRoadmap from '@/components/GoalRoadmap';
 
 interface DeckWithCount extends Deck {
@@ -129,7 +129,7 @@ export default function HomePage() {
       {/* Main Content Area */}
       <div className="max-w-3xl mx-auto px-6 py-6 space-y-6">
         {/* 1. Doyoung & Hyojae Shared Memo Board */}
-        <ChatBoard />
+        <SharedMemoBoard />
 
         {/* 2. Goal & D-Day Roadmap Widget */}
         <GoalRoadmap />
