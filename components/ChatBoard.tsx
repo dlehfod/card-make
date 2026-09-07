@@ -252,26 +252,48 @@ export default function ChatBoard() {
 
   // User Selection Screen
   if (!currentUser) {
+    const totalUnread = messages.filter((m) => !m.is_read).length;
     return (
-      <div className="bg-warm-white border border-beige-dark/70 rounded-3xl p-6 shadow-sm">
+      <div className="bg-warm-white border border-beige-dark/70 rounded-3xl p-6 shadow-sm relative">
+        {totalUnread > 0 && (
+          <div className="absolute -top-3 -right-3 z-10">
+            <span className="inline-flex items-center justify-center min-w-[36px] h-9 px-3 bg-red-500 text-white text-base font-bold rounded-full shadow-lg animate-pulse">
+              💬 {totalUnread}
+            </span>
+          </div>
+        )}
         <div className="text-center py-6">
           <span className="text-3xl mb-3 block">🔮</span>
           <h3 className="text-lg font-serif font-bold text-charcoal tracking-wide mb-1">
             두 타로마스터의 대화방
           </h3>
-          <p className="text-xs text-charcoal-light mb-6">
-            먼저 자신이 누구인지 선택해주세요
-          </p>
+          {totalUnread > 0 ? (
+            <p className="text-xs text-red-500 font-bold mb-6 animate-pulse">
+              📢 새로운 메시지 {totalUnread}개가 있어요!
+            </p>
+          ) : (
+            <p className="text-xs text-charcoal-light mb-6">
+              먼저 자신이 누구인지 선택해주세요
+            </p>
+          )}
 
           <div className="grid grid-cols-2 gap-4 max-w-sm mx-auto">
             {(['doyoung', 'hyojae'] as Sender[]).map((sender) => {
               const info = PROFILE_INFO[sender];
+              const myUnread = messages.filter(
+                (m) => m.sender !== sender && !m.is_read
+              ).length;
               return (
                 <button
                   key={sender}
                   onClick={() => selectUser(sender)}
-                  className="group flex flex-col items-center gap-3 p-5 bg-gradient-to-b from-[#FAF6EE] to-warm-white border-2 border-beige-dark/40 rounded-2xl hover:border-gold/60 hover:shadow-md transition-all"
+                  className="group relative flex flex-col items-center gap-3 p-5 bg-gradient-to-b from-[#FAF6EE] to-warm-white border-2 border-beige-dark/40 rounded-2xl hover:border-gold/60 hover:shadow-md transition-all"
                 >
+                  {myUnread > 0 && (
+                    <span className="absolute -top-2 -right-2 inline-flex items-center justify-center min-w-[24px] h-6 px-1.5 bg-red-500 text-white text-xs font-bold rounded-full shadow-md">
+                      {myUnread}
+                    </span>
+                  )}
                   <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-gold/40 shadow-sm group-hover:border-gold/80 group-hover:scale-105 transition-all">
                     <img
                       src={info.image}
