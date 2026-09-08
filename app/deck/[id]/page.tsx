@@ -775,18 +775,20 @@ export default function DeckPage() {
         })()}
 
         {/* Top Actions: Add Card Button & Search */}
-        <div className="flex flex-col sm:flex-row gap-3 mb-6">
+        <div className="flex items-center gap-2.5 mb-5">
           <button
             onClick={() => setShowAddCard(!showAddCard)}
-            className={`px-5 py-2.5 rounded-xl font-medium text-sm transition-all shadow-xs ${showAddCard
+            className={`px-3.5 py-2 rounded-xl font-medium text-xs transition-all shadow-2xs shrink-0 flex items-center gap-1 ${
+              showAddCard
                 ? 'bg-beige-dark text-charcoal'
                 : 'bg-charcoal text-ivory hover:bg-brown-dark'
-              }`}
+            }`}
           >
-            {showAddCard ? '✕ 입력창 닫기' : '+ 카드 추가'}
+            <span>{showAddCard ? '✕' : '+'}</span>
+            <span>{showAddCard ? '닫기' : '카드 추가'}</span>
           </button>
           <div className="flex-1 relative">
-            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-charcoal-light/60 text-xs">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-charcoal-light/60 text-xs">
               🔍
             </span>
             <input
@@ -794,7 +796,7 @@ export default function DeckPage() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="카드명, 뜻, 키워드, 메모 검색..."
-              className="w-full pl-9 pr-4 py-2 bg-warm-white border border-beige-dark/60 rounded-xl text-charcoal placeholder:text-charcoal-light/40 text-sm focus:border-gold"
+              className="w-full pl-8 pr-3 py-1.5 bg-warm-white border border-beige-dark/60 rounded-xl text-charcoal placeholder:text-charcoal-light/40 text-xs focus:border-gold"
             />
           </div>
         </div>
