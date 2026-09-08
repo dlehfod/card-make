@@ -134,27 +134,27 @@ export default function GoalRoadmap() {
       {/* Header */}
       <div
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center justify-between cursor-pointer select-none pb-2"
+        className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 cursor-pointer select-none pb-2"
       >
-        <div className="flex items-center gap-2.5">
-          <span className="text-xl">🎯</span>
-          <div>
-            <h3 className="text-base font-serif font-bold text-charcoal tracking-wide">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <span className="text-xl shrink-0">🎯</span>
+          <div className="min-w-0">
+            <h3 className="text-base font-serif font-bold text-charcoal tracking-wide break-keep">
               로드맵 & 목표 달성 스케줄
             </h3>
-            <p className="text-[11px] text-charcoal-light">
+            <p className="text-[11px] text-charcoal-light break-keep">
               게을러지지 않기 위한 D-DAY & 하위 액션플랜
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
           {dDayText && (
-            <span className="px-3 py-1 bg-amber-500/15 border border-amber-500/40 text-amber-900 rounded-full font-bold text-xs">
+            <span className="px-3 py-1 bg-amber-500/15 border border-amber-500/40 text-amber-900 rounded-full font-bold text-xs whitespace-nowrap">
               {dDayText}
             </span>
           )}
-          <span className="text-xs bg-beige px-2 py-1 rounded-md text-charcoal font-medium">
+          <span className="text-xs bg-beige px-2 py-1 rounded-md text-charcoal font-medium whitespace-nowrap">
             {isOpen ? '접기 ▲' : '펼치기 ▼'}
           </span>
         </div>
@@ -167,25 +167,25 @@ export default function GoalRoadmap() {
           <div className="bg-gradient-to-r from-[#FAF6EE] to-ivory border border-brown/30 rounded-2xl p-4 relative">
             {!isEditingMain ? (
               <div className="flex items-start justify-between gap-3">
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-[10px] bg-charcoal text-gold-light px-2 py-0.5 rounded font-mono font-bold uppercase tracking-wider">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mb-1">
+                    <span className="text-[10px] bg-charcoal text-gold-light px-2 py-0.5 rounded font-mono font-bold uppercase tracking-wider whitespace-nowrap">
                       FINAL GOAL
                     </span>
                     {targetDate && (
-                      <span className="text-xs text-brown-dark font-medium">
+                      <span className="text-xs text-brown-dark font-medium whitespace-nowrap">
                         목표일: {targetDate} ({dDayText})
                       </span>
                     )}
                   </div>
-                  <h4 className="text-base font-bold text-charcoal mt-1 leading-snug">
+                  <h4 className="text-base font-bold text-charcoal mt-1 leading-snug break-keep">
                     🏆 {mainGoal || '최종 목표를 설정해주세요'}
                   </h4>
                 </div>
                 <button
                   type="button"
                   onClick={() => setIsEditingMain(true)}
-                  className="px-2.5 py-1 text-xs border border-beige-dark/70 rounded-lg text-charcoal hover:bg-beige"
+                  className="px-2.5 py-1 text-xs border border-beige-dark/70 rounded-lg text-charcoal hover:bg-beige shrink-0"
                 >
                   수정
                 </button>
@@ -282,7 +282,7 @@ export default function GoalRoadmap() {
                       {sub.completed ? '✅' : '⬜'}
                     </span>
                     <span
-                      className={`text-xs font-medium leading-tight ${
+                      className={`text-xs font-medium leading-tight break-keep ${
                         sub.completed ? 'line-through text-charcoal-light/60' : 'text-charcoal'
                       }`}
                     >
