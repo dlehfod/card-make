@@ -625,7 +625,6 @@ export default function DeckPage() {
       <div className="max-w-3xl mx-auto px-6 pt-6">
         {/* 🌷 Simple & Cute Deck Progress Bar (완료된 카드만 반영) */}
         {(() => {
-          const totalCardsCount = cards.length;
           const doneCount = cards.filter((c) => c.status === 'done').length;
           const workingCount = cards.filter((c) => c.status === 'working').length;
           const todoCount = cards.filter((c) => c.status === 'todo').length;
@@ -701,7 +700,7 @@ export default function DeckPage() {
               </div>
 
               {/* Bottom Row: Simple Status Text */}
-              <div className="flex items-center justify-between mt-2 text-[11px] text-[#A88B7E]">
+              <div className="mt-2 text-[11px] text-[#A88B7E]">
                 <span>
                   완료 <strong className="text-[#8C4A38]">{doneCount}</strong>
                   <span className="mx-1 text-[#E5D0C5]">·</span>
@@ -709,7 +708,6 @@ export default function DeckPage() {
                   <span className="mx-1 text-[#E5D0C5]">·</span>
                   미작업 <strong className="text-[#8C4A38]">{todoCount}</strong>
                 </span>
-                <span>전체 {totalCardsCount}장</span>
               </div>
             </div>
           );
