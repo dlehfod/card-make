@@ -49,7 +49,6 @@ function isSameDay(date1: string, date2: string): boolean {
 
 export default function ChatBoard() {
   const [currentUser, setCurrentUser] = useState<Sender | null>(null);
-  const [pendingUser, setPendingUser] = useState<Sender | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
@@ -62,21 +61,9 @@ export default function ChatBoard() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // 매번 접속 시 사용자 선택 화면 표시 (localStorage 사용 안 함)
-  // 1단계: 프로필 클릭 -> pendingUser로 대기 (확인 전)
+  // 프로필 클릭 -> 바로 해당 사용자로 접속 (확인 단계 없음)
   const selectUser = (sender: Sender) => {
-    setPendingUser(sender);
-  };
-
-  // 2단계: "네, 맞아요" 확인 후에만 실제로 로그인 확정
-  const confirmUser = () => {
-    if (pendingUser) {
-      setCurrentUser(pendingUser);
-      setPendingUser(null);
-    }
-  };
-
-  const cancelPendingUser = () => {
-    setPendingUser(null);
+    setCurrentUser(sender);
   };
 
   // Fetch messages
@@ -248,40 +235,6 @@ export default function ChatBoard() {
   };
 
   // ====== RENDER ======
-
-  // 확인 화면: 프로필을 눌렀지만 아직 확정 전 - 실수 방지용 재확인 단계
-  if (pendingUser) {
-    const info = PROFILE_INFO[pendingUser];
-    return (
-      <div className="bg-warm-white border border-beige-dark/70 rounded-3xl p-6 shadow-sm">
-        <div className="text-center py-8">
-          <div className="w-20 h-20 rounded-full overflow-hidden border-3 border-gold/60 shadow-md mx-auto mb-4">
-            <img src={info.image} alt={info.name} className="w-full h-full object-cover" />
-          </div>
-          <h3 className="text-lg font-serif font-bold text-charcoal tracking-wide mb-1">
-            당신은 {info.name}({info.nickname})이 맞나요?
-          </h3>
-          <p className="text-xs text-charcoal-light mb-6">
-            잘못 선택하면 상대방 이름으로 메시지가 전송됩니다. 꼭 확인해주세요!
-          </p>
-          <div className="flex gap-3 max-w-xs mx-auto">
-            <button
-              onClick={cancelPendingUser}
-              className="flex-1 py-3 border border-beige-dark/50 rounded-xl text-charcoal-light hover:bg-beige font-medium text-sm"
-            >
-              아니요, 다시 선택
-            </button>
-            <button
-              onClick={confirmUser}
-              className="flex-1 py-3 bg-gradient-to-br from-gold to-brown text-white rounded-xl hover:shadow-md font-bold text-sm"
-            >
-              네, 맞아요!
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   // User Selection Screen
   if (!currentUser) {
