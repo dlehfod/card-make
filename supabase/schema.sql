@@ -154,3 +154,9 @@ CREATE POLICY "Allow all access to chat_messages" ON chat_messages
 
 -- Enable Realtime for chat_messages
 ALTER PUBLICATION supabase_realtime ADD TABLE chat_messages;
+
+-- 13. Migration: Allow image attachments in chat (사진첨부 기능)
+-- Run this SQL in Supabase SQL Editor
+ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS image_url TEXT;
+ALTER TABLE chat_messages ALTER COLUMN message DROP NOT NULL;
+ALTER TABLE chat_messages ALTER COLUMN message SET DEFAULT '';

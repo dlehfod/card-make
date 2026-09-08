@@ -9,6 +9,7 @@ interface ChatMessage {
   id: string;
   sender: Sender;
   message: string;
+  image_url: string | null;
   is_read: boolean;
   created_at: string;
 }
@@ -56,9 +57,16 @@ export default function ChatBoard() {
   const [isOpen, setIsOpen] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
 
+  // 사진 첨부
+  const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
+  const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [viewImageUrl, setViewImageUrl] = useState<string | null>(null);
+
   const chatEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
 
   // 매번 접속 시 사용자 선택 화면 표시 (localStorage 사용 안 함)
   // 프로필 클릭 -> 바로 해당 사용자로 접속 (확인 단계 없음)
@@ -177,13 +185,42 @@ export default function ChatBoard() {
 
   // 자동 읽음처리 비활성화 - 수동 "읽었어요" 버튼으로 처리
 
-  // Send message
+  // 이미지 선택
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // Allow re-selecting the same file
+    if (!file) return;
+
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+    if (!validTypes.includes(file.type)) {
+      alert('JPG, PNG, WEBP, GIF 이미지 파일만 첨부할 수 있습니다.');
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      alert('이미지 용량은 10MB 이하로 첨부해주세요.');
+      return;
+    }
+
+    setSelectedImageFile(file);
+    setImagePreviewUrl(URL.createObjectURL(file));
+  };
+
+  const handleRemoveSelectedImage = () => {
+    if (imagePreviewUrl) URL.revokeObjectURL(imagePreviewUrl);
+    setSelectedImageFile(null);
+    setImagePreviewUrl(null);
+  };
+
+  // Send message (텍스트, 사진, 또는 둘 다)
   const handleSend = async () => {
-    if (!currentUser || !newMessage.trim() || sending) return;
+    if (!currentUser || sending) return;
+    const messageText = newMessage.trim();
+    if (!messageText && !selectedImageFile) return;
 
     setSending(true);
-    const messageText = newMessage.trim();
+    const imageFile = selectedImageFile;
     setNewMessage('');
+    handleRemoveSelectedImage();
 
     // Reset textarea height
     if (textareaRef.current) {
@@ -191,9 +228,35 @@ export default function ChatBoard() {
     }
 
     try {
+      let uploadedImageUrl: string | null = null;
+
+      if (imageFile) {
+        setUploadingImage(true);
+        const ext = imageFile.name.split('.').pop() || 'png';
+        const fileName = `chat/${currentUser}_${Date.now()}.${ext}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('card-images')
+          .upload(fileName, imageFile, { upsert: true });
+
+        setUploadingImage(false);
+
+        if (uploadError) {
+          console.error('Failed to upload chat image:', uploadError);
+          alert('사진 업로드에 실패했습니다: ' + uploadError.message);
+          setNewMessage(messageText);
+          setSending(false);
+          return;
+        }
+
+        const { data: urlData } = supabase.storage.from('card-images').getPublicUrl(fileName);
+        uploadedImageUrl = urlData.publicUrl;
+      }
+
       const { error } = await supabase.from('chat_messages').insert({
         sender: currentUser,
-        message: messageText,
+        message: messageText || '',
+        image_url: uploadedImageUrl,
         is_read: false,
       });
 
@@ -450,14 +513,26 @@ export default function ChatBoard() {
                             }`}
                           >
                             {/* Message Bubble */}
-                            <div
-                              className={`px-3.5 py-2.5 rounded-2xl text-[13px] leading-relaxed break-words whitespace-pre-wrap ${
-                                isMe
-                                  ? 'bg-gradient-to-br from-gold/90 to-gold-light/80 text-charcoal rounded-bl-md shadow-xs'
-                                  : 'bg-white border border-beige-dark/40 text-charcoal rounded-br-md shadow-xs'
-                              }`}
-                            >
-                              {msg.message}
+                            <div className="flex flex-col gap-1 max-w-full">
+                              {msg.image_url && (
+                                <img
+                                  src={msg.image_url}
+                                  alt="첨부 사진"
+                                  onClick={() => setViewImageUrl(msg.image_url)}
+                                  className="max-w-[200px] max-h-[240px] rounded-2xl border border-beige-dark/40 object-cover shadow-xs cursor-pointer hover:opacity-90 transition-opacity"
+                                />
+                              )}
+                              {msg.message && (
+                                <div
+                                  className={`px-3.5 py-2.5 rounded-2xl text-[13px] leading-relaxed break-words whitespace-pre-wrap ${
+                                    isMe
+                                      ? 'bg-gradient-to-br from-gold/90 to-gold-light/80 text-charcoal rounded-bl-md shadow-xs'
+                                      : 'bg-white border border-beige-dark/40 text-charcoal rounded-br-md shadow-xs'
+                                  }`}
+                                >
+                                  {msg.message}
+                                </div>
+                              )}
                             </div>
 
                             {/* Time + Read Status */}
@@ -530,7 +605,41 @@ export default function ChatBoard() {
                 ✅ {otherInfo.nickname}의 메시지 {unreadCount}개 읽음확인
               </button>
             )}
+
+            {/* 선택된 이미지 미리보기 */}
+            {imagePreviewUrl && (
+              <div className="mb-2 relative inline-block">
+                <img
+                  src={imagePreviewUrl}
+                  alt="첨부할 사진 미리보기"
+                  className="h-20 rounded-xl border border-beige-dark/50 object-cover shadow-xs"
+                />
+                <button
+                  onClick={handleRemoveSelectedImage}
+                  className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-charcoal text-ivory text-[10px] flex items-center justify-center shadow-md hover:bg-red-500"
+                  title="첨부 취소"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+
             <div className="flex items-end gap-2">
+              <input
+                ref={imageInputRef}
+                type="file"
+                accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
+                onChange={handleImageSelect}
+                className="hidden"
+              />
+              <button
+                onClick={() => imageInputRef.current?.click()}
+                disabled={uploadingImage || sending}
+                className="shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-lg bg-white border border-beige-dark/50 text-charcoal-light hover:bg-beige hover:text-brown transition-colors disabled:opacity-40"
+                title="사진 첨부"
+              >
+                📷
+              </button>
               <div className="flex-1 relative">
                 <textarea
                   ref={textareaRef}
@@ -545,9 +654,9 @@ export default function ChatBoard() {
               </div>
               <button
                 onClick={handleSend}
-                disabled={!newMessage.trim() || sending}
+                disabled={(!newMessage.trim() && !selectedImageFile) || sending}
                 className={`shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all ${
-                  newMessage.trim() && !sending
+                  (newMessage.trim() || selectedImageFile) && !sending
                     ? 'bg-gradient-to-br from-gold to-brown text-white shadow-md hover:shadow-lg hover:scale-105 active:scale-95'
                     : 'bg-beige-dark/40 text-charcoal-light/40 cursor-not-allowed'
                 }`}
@@ -561,9 +670,30 @@ export default function ChatBoard() {
               </button>
             </div>
             <p className="text-[9px] text-charcoal-light/40 mt-1.5 text-center">
-              Enter로 전송 · Shift+Enter로 줄바꿈
+              Enter로 전송 · Shift+Enter로 줄바꿈 · 📷 사진 첨부
             </p>
           </div>
+        </div>
+      )}
+
+      {/* 이미지 확대 보기 (라이트박스) */}
+      {viewImageUrl && (
+        <div
+          onClick={() => setViewImageUrl(null)}
+          className="fixed inset-0 bg-black/80 flex items-center justify-center z-101 p-4 cursor-zoom-out"
+        >
+          <img
+            src={viewImageUrl}
+            alt="첨부 사진 확대"
+            className="max-w-[92vw] max-h-[88vh] object-contain rounded-xl shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          />
+          <button
+            onClick={() => setViewImageUrl(null)}
+            className="absolute top-4 right-4 w-9 h-9 rounded-full bg-white/20 hover:bg-white/40 text-white text-lg flex items-center justify-center"
+          >
+            ✕
+          </button>
         </div>
       )}
     </div>
