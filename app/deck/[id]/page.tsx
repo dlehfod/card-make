@@ -623,7 +623,7 @@ export default function DeckPage() {
       </header>
 
       <div className="max-w-3xl mx-auto px-6 pt-6">
-        {/* 🌸 Pretty & Aesthetic Deck Progress Bar (완료된 카드만 반영) */}
+        {/* 🌷 Simple & Cute Deck Progress Bar (완료된 카드만 반영) */}
         {(() => {
           const totalCardsCount = cards.length;
           const doneCount = cards.filter((c) => c.status === 'done').length;
@@ -633,48 +633,19 @@ export default function DeckPage() {
             targetCardCount > 0
               ? Math.min(100, Math.round((doneCount / targetCardCount) * 100))
               : 0;
-          const remaining = Math.max(0, targetCardCount - doneCount);
           const isFull = progressPercent >= 100;
 
           return (
-            <div className="bg-gradient-to-br from-[#FFFDFC] via-[#FFF8F3] to-[#FDF3ED] border border-[#F0DCD3]/90 rounded-3xl p-5 sm:p-6 mb-6 shadow-[0_4px_24px_rgba(230,195,180,0.18)] relative overflow-hidden">
-              {/* Subtle Ambient Sparkle Tint when 100% */}
-              {isFull && (
-                <div className="absolute inset-0 bg-gradient-to-r from-rose-100/30 via-amber-100/30 to-pink-100/30 animate-pulse pointer-events-none" />
-              )}
-
-              {/* Top Row: Aesthetic Icon + Title & Percentage */}
-              <div className="flex items-center justify-between gap-3 mb-3.5 relative z-10">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-2xl bg-white/90 border border-[#F3D7CC] flex items-center justify-center shadow-xs animate-soft-float">
-                    <span className="text-lg">{isFull ? '👑' : '🌸'}</span>
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h2 className="text-sm font-serif font-bold text-[#8C4A38] tracking-wide flex items-center gap-1.5">
-                        <span>타로 덱 완성도</span>
-                        <span className="text-xs">✨</span>
-                      </h2>
-                    </div>
-                    <p className="text-xs text-[#A66E60] mt-0.5 font-normal">
-                      목표 <span className="font-semibold text-[#8C4A38]">{targetCardCount}장</span> 중{' '}
-                      <span className="font-bold text-[#D96B50]">{doneCount}장 완성</span>
-                      {remaining > 0 ? ` (앞으로 ${remaining}장 남음 💖)` : ' (전량 완성 달성! 🎉)'}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <div className="text-right">
-                    <span className="font-serif text-3xl sm:text-4xl font-bold bg-gradient-to-r from-[#D96B50] via-[#C85A3F] to-[#E58870] bg-clip-text text-transparent tracking-tight">
-                      {progressPercent}%
-                    </span>
-                  </div>
-
-                  {/* Target Card Setting Pill */}
+            <div className="bg-[#FFFAF6] border border-[#F2DFD5] rounded-2xl px-5 py-4 mb-6">
+              {/* Top Row: Title + Percentage */}
+              <div className="flex items-center justify-between mb-2.5">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-sm">{isFull ? '👑' : '🌷'}</span>
+                  <h2 className="text-[13px] font-semibold text-[#8C4A38]">
+                    덱 완성도
+                  </h2>
                   {isEditingTarget ? (
-                    <div className="flex items-center gap-1 bg-white border border-[#E8B4A2] rounded-xl px-2 py-1 shadow-xs">
-                      <span className="text-[11px] text-[#A66E60]">목표:</span>
+                    <span className="flex items-center gap-1 ml-1">
                       <input
                         type="number"
                         min="1"
@@ -688,87 +659,57 @@ export default function DeckPage() {
                             setIsEditingTarget(false);
                           }
                         }}
-                        className="w-12 text-center font-bold text-[#8C4A38] text-xs bg-[#FFFBF8] border border-[#F0DCD3] rounded-md focus:border-[#D96B50] py-0.5"
+                        className="w-10 text-center text-[11px] font-semibold text-[#8C4A38] bg-white border border-[#EBCFC2] rounded-md py-0.5 focus:border-[#D96B50]"
                         autoFocus
                       />
-                      <span className="text-[11px] text-[#A66E60]">장</span>
                       <button
                         onClick={() => handleSaveTargetCount()}
-                        className="px-2 py-0.5 bg-[#8C4A38] hover:bg-[#6E3626] text-white rounded-md text-[10px] font-bold ml-1 transition-colors"
+                        className="text-[11px] text-[#D96B50] font-semibold hover:text-[#B84E38]"
                       >
-                        저장
+                        확인
                       </button>
-                      <button
-                        onClick={() => {
-                          setTempTargetCount(targetCardCount.toString());
-                          setIsEditingTarget(false);
-                        }}
-                        className="text-[#A66E60] hover:text-[#8C4A38] text-[10px] px-1"
-                      >
-                        ✕
-                      </button>
-                    </div>
+                    </span>
                   ) : (
                     <button
                       onClick={() => {
                         setTempTargetCount(targetCardCount.toString());
                         setIsEditingTarget(true);
                       }}
-                      className="group flex items-center gap-1 px-2.5 py-1 bg-white/80 hover:bg-white border border-[#ECD1C6] hover:border-[#D96B50]/60 rounded-full text-[11px] font-medium text-[#9C5A48] shadow-2xs hover:shadow-xs transition-all"
-                      title="클릭하여 목표 장수 변경"
+                      className="text-[11px] text-[#B78777] hover:text-[#D96B50] transition-colors ml-0.5"
+                      title="목표 장수 변경"
                     >
-                      <span>🎯 목표 {targetCardCount}장</span>
-                      <span className="text-[9px] text-[#C4806E] group-hover:text-[#9C5A48]">✎</span>
+                      (목표 {targetCardCount}장 ✎)
                     </button>
                   )}
                 </div>
+
+                <span className="font-serif text-xl font-bold text-[#D96B50]">
+                  {progressPercent}%
+                </span>
               </div>
 
-              {/* Aesthetic Rose-Gold & Peach Progress Bar */}
-              <div className="space-y-2 relative z-10">
-                <div className="relative h-3.5 w-full bg-[#F3E6DF] rounded-full p-0.5 border border-[#EBD6CC] shadow-inner overflow-hidden">
-                  <div
-                    className={`h-full rounded-full transition-all duration-700 ease-out relative overflow-hidden flex items-center justify-end pr-1 ${
-                      isFull
-                        ? 'bg-gradient-to-r from-[#F472B6] via-[#FB7185] to-[#FBBF24] shadow-md animate-energy-glow'
-                        : 'bg-gradient-to-r from-[#FCA5A5] via-[#FB7185] to-[#FCD34D] shadow-xs'
-                    }`}
-                    style={{
-                      width: `${Math.max(progressPercent > 0 ? 3 : 0, Math.min(100, progressPercent))}%`,
-                    }}
-                  >
-                    {/* Shimmer Light Beam */}
-                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/50 to-transparent animate-energy-shimmer" />
-
-                    {/* Cute glowing sparkle bulb at tip */}
-                    {progressPercent > 0 && (
-                      <span className="relative w-1.5 h-1.5 rounded-full bg-white shadow-[0_0_6px_#FFF] animate-ping" style={{ animationDuration: '2.5s' }} />
-                    )}
-                  </div>
+              {/* Soft Pastel Progress Bar */}
+              <div className="relative h-2 w-full bg-[#F3E6DF] rounded-full overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-[#F5A9A0] to-[#F7C873] transition-all duration-700 ease-out relative overflow-hidden"
+                  style={{
+                    width: `${Math.max(progressPercent > 0 ? 3 : 0, Math.min(100, progressPercent))}%`,
+                  }}
+                >
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent animate-energy-shimmer" />
                 </div>
               </div>
 
-              {/* Bottom Row: Cute Pastel Status Pills */}
-              <div className="flex flex-wrap items-center justify-between gap-2 mt-3.5 pt-3 border-t border-[#F2DDD3]/60 relative z-10">
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#FFEBE5] text-[#C04D33] border border-[#F8CEC2]">
-                    <span>✨</span>
-                    <span>완료 <strong>{doneCount}</strong></span>
-                  </span>
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#FFF4E5] text-[#A66820] border border-[#F8DFBA]">
-                    <span>🎨</span>
-                    <span>작업중 <strong>{workingCount}</strong></span>
-                  </span>
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#F8F5F2] text-[#7A6B63] border border-[#EAE3DC]">
-                    <span>📝</span>
-                    <span>미작업 <strong>{todoCount}</strong></span>
-                  </span>
-                </div>
-
-                <div className="text-xs font-medium text-[#9C5A48] flex items-center gap-1.5">
-                  <span className="text-sm">🌷</span>
-                  <span>전체 등록 <strong className="text-[#8C4A38]">{totalCardsCount}</strong>장</span>
-                </div>
+              {/* Bottom Row: Simple Status Text */}
+              <div className="flex items-center justify-between mt-2 text-[11px] text-[#A88B7E]">
+                <span>
+                  완료 <strong className="text-[#8C4A38]">{doneCount}</strong>
+                  <span className="mx-1 text-[#E5D0C5]">·</span>
+                  작업중 <strong className="text-[#8C4A38]">{workingCount}</strong>
+                  <span className="mx-1 text-[#E5D0C5]">·</span>
+                  미작업 <strong className="text-[#8C4A38]">{todoCount}</strong>
+                </span>
+                <span>전체 {totalCardsCount}장</span>
               </div>
             </div>
           );
