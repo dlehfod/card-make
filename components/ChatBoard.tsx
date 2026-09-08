@@ -174,12 +174,7 @@ export default function ChatBoard() {
     );
   }, [currentUser, messages]);
 
-  // Auto-mark as read when chat is open and there are unread messages
-  useEffect(() => {
-    if (isOpen && currentUser && unreadCount > 0) {
-      markAsRead();
-    }
-  }, [isOpen, currentUser, unreadCount, markAsRead]);
+  // 자동 읽음처리 비활성화 - 수동 "읽었어요" 버튼으로 처리
 
   // Send message
   const handleSend = async () => {
@@ -404,17 +399,17 @@ export default function ChatBoard() {
 
                       {/* Message Bubble */}
                       <div
-                        className={`flex items-end gap-2 ${
-                          isMe ? 'flex-row-reverse' : 'flex-row'
+                        className={`flex w-full items-end gap-2 ${
+                          isMe ? 'justify-start' : 'justify-end'
                         } ${showProfile ? 'mt-3' : 'mt-0.5'} ${
-                          isMe ? 'chat-bubble-right' : 'chat-bubble-left'
+                          isMe ? 'chat-bubble-left' : 'chat-bubble-right'
                         }`}
                       >
-                        {/* Profile Image */}
-                        {!isMe && (
+                        {/* Profile Image (당사자는 왼쪽) */}
+                        {isMe && (
                           <div className="shrink-0 self-start">
                             {showProfile ? (
-                              <div className="w-9 h-9 rounded-full overflow-hidden border border-beige-dark/50 shadow-xs">
+                              <div className="w-9 h-9 rounded-full overflow-hidden border-2 border-gold/60 shadow-xs">
                                 <img
                                   src={senderInfo.image}
                                   alt={senderInfo.name}
@@ -430,27 +425,28 @@ export default function ChatBoard() {
                         {/* Bubble Content */}
                         <div
                           className={`flex flex-col ${
-                            isMe ? 'items-end' : 'items-start'
+                            isMe ? 'items-start' : 'items-end'
                           } max-w-[75%] min-w-0`}
                         >
-                          {/* Sender Name */}
-                          {showProfile && !isMe && (
-                            <span className="text-[11px] font-semibold text-charcoal-light mb-1 ml-1">
+                          {/* Sender Name - 양쪽 모두 표시 */}
+                          {showProfile && (
+                            <span className="text-[11px] font-semibold text-charcoal-light mb-1 mx-1">
                               {senderInfo.name} ({senderInfo.nickname})
+                              {isMe && <span className="text-gold ml-1">· 나</span>}
                             </span>
                           )}
 
                           <div
                             className={`flex items-end gap-1.5 ${
-                              isMe ? 'flex-row-reverse' : 'flex-row'
+                              isMe ? 'flex-row' : 'flex-row-reverse'
                             }`}
                           >
                             {/* Message Bubble */}
                             <div
                               className={`px-3.5 py-2.5 rounded-2xl text-[13px] leading-relaxed break-words whitespace-pre-wrap ${
                                 isMe
-                                  ? 'bg-gradient-to-br from-gold/90 to-gold-light/80 text-charcoal rounded-br-md shadow-xs'
-                                  : 'bg-white border border-beige-dark/40 text-charcoal rounded-bl-md shadow-xs'
+                                  ? 'bg-gradient-to-br from-gold/90 to-gold-light/80 text-charcoal rounded-bl-md shadow-xs'
+                                  : 'bg-white border border-beige-dark/40 text-charcoal rounded-br-md shadow-xs'
                               }`}
                             >
                               {msg.message}
@@ -460,7 +456,7 @@ export default function ChatBoard() {
                             {showTime && (
                               <div
                                 className={`flex flex-col shrink-0 ${
-                                  isMe ? 'items-end' : 'items-start'
+                                  isMe ? 'items-start' : 'items-end'
                                 }`}
                               >
                                 {/* Read status (only for my messages) */}
@@ -491,8 +487,22 @@ export default function ChatBoard() {
                           </div>
                         </div>
 
-                        {/* Right side spacer for my messages (no profile) */}
-                        {isMe && <div className="w-0" />}
+                        {/* Profile Image (상대방은 오른쪽) */}
+                        {!isMe && (
+                          <div className="shrink-0 self-start">
+                            {showProfile ? (
+                              <div className="w-9 h-9 rounded-full overflow-hidden border border-beige-dark/50 shadow-xs">
+                                <img
+                                  src={senderInfo.image}
+                                  alt={senderInfo.name}
+                                  className="w-full h-full object-cover"
+                                />
+                              </div>
+                            ) : (
+                              <div className="w-9" />
+                            )}
+                          </div>
+                        )}
                       </div>
                     </div>
                   );
@@ -504,6 +514,14 @@ export default function ChatBoard() {
 
           {/* Input Area */}
           <div className="border-t border-beige-dark/30 px-4 py-3 bg-gradient-to-t from-ivory to-warm-white">
+            {unreadCount > 0 && (
+              <button
+                onClick={markAsRead}
+                className="w-full mb-2 py-2 text-xs font-bold rounded-xl border border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors"
+              >
+                ✅ {otherInfo.nickname}의 메시지 {unreadCount}개 읽음확인
+              </button>
+            )}
             <div className="flex items-end gap-2">
               <div className="flex-1 relative">
                 <textarea
