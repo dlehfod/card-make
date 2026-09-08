@@ -199,4 +199,29 @@ select:focus {
   will-change: transform, opacity;
 }
 
+/* Celebration Toast Message */
+@keyframes celebration-toast-in {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -12px) scale(0.9);
+  }
+  15% {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+  85% {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -8px) scale(0.96);
+  }
+}
+
+.celebration-toast {
+  left: 50%;
+  animation: celebration-toast-in 2.6s ease-out forwards;
+}
+
 

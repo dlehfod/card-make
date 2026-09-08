@@ -31,6 +31,21 @@ function getTodayStr(d: Date = new Date()): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
+// 카드 완료 시 랜덤으로 뜨는 축하 메시지
+const CELEBRATION_MESSAGES = [
+  '드디어 또 한 장 완성했네요! 축하합니다 🎉',
+  '멋져요! 카드가 하나 더 완성되었어요 ✨',
+  '한 걸음 더 나아갔어요, 정말 잘하고 있어요 💪',
+  '완성! 당신의 정성이 카드에 담겼어요 🌸',
+  '축하해요, 덱이 한층 더 가까워졌어요 👑',
+  '이 카드도 완벽하게 완성! 최고예요 💖',
+  '수고하셨어요! 오늘도 한 장 해냈네요 🌟',
+];
+
+function getRandomCelebrationMessage(): string {
+  return CELEBRATION_MESSAGES[Math.floor(Math.random() * CELEBRATION_MESSAGES.length)];
+}
+
 // 카드 완료 시 살짝 터지는 축하 이펙트
 function ConfettiBurst() {
   const particles = useMemo(() => {
@@ -84,6 +99,7 @@ export default function DeckPage() {
   // Motivation Extras: 연속 작업일 스트릭 & 완료 축하 이펙트
   const [streakCount, setStreakCount] = useState<number>(0);
   const [celebrations, setCelebrations] = useState<number[]>([]);
+  const [celebrationMessage, setCelebrationMessage] = useState<string | null>(null);
 
   const triggerCelebration = () => {
     const id = Date.now() + Math.random();
@@ -91,6 +107,11 @@ export default function DeckPage() {
     setTimeout(() => {
       setCelebrations((prev) => prev.filter((c) => c !== id));
     }, 2200);
+
+    setCelebrationMessage(getRandomCelebrationMessage());
+    setTimeout(() => {
+      setCelebrationMessage(null);
+    }, 2600);
   };
 
   // 카드를 '완료'로 바꾼 활동을 오늘 날짜로 기록하고 연속일 계산
@@ -856,6 +877,15 @@ export default function DeckPage() {
         {celebrations.map((id) => (
           <ConfettiBurst key={id} />
         ))}
+
+        {/* 💬 Celebration Toast Message */}
+        {celebrationMessage && (
+          <div className="fixed top-6 z-101 pointer-events-none celebration-toast px-4 w-full max-w-xs">
+            <div className="bg-white border border-[#F5D9B8] shadow-lg rounded-2xl px-5 py-2.5 text-sm font-semibold text-[#8C4A38] text-center break-keep">
+              {celebrationMessage}
+            </div>
+          </div>
+        )}
 
         {/* Top Actions: Add Card Button & Search */}
         <div className="flex items-center gap-2.5 mb-5">
