@@ -240,27 +240,27 @@ export default function DeckPage() {
     setIsEditingTarget(false);
   };
 
-  // Get Motivation Details based on progress
-  const getMotivation = (current: number, target: number) => {
+  // Get Motivation Details based on progress (완료된 카드 기준)
+  const getMotivation = (done: number, target: number) => {
     if (target <= 0) return { text: '목표 장수를 설정해주세요!', emoji: '🎯', badge: '목표 미설정' };
-    const pct = Math.min(100, Math.round((current / target) * 100));
+    const pct = Math.min(100, Math.round((done / target) * 100));
 
-    if (current === 0) {
-      return { text: '위대한 타로 덱의 첫 카드를 등록해보세요!', emoji: '🔮', badge: '여정의 시작' };
+    if (done === 0) {
+      return { text: '카드를 완성(완료 상태)하면 에너지가 차오릅니다! 첫 완성을 향해 달려보세요!', emoji: '🔮', badge: '완성 대기' };
     }
     if (pct < 25) {
-      return { text: '첫 발을 내디뎠습니다! 창작의 에너지가 모이고 있어요.', emoji: '🌱', badge: '에너지 충전 중' };
+      return { text: '첫 카드들이 완성되었습니다! 완성 에너지가 차오르고 있어요.', emoji: '🌱', badge: '완성 에너지 충전' };
     }
     if (pct < 50) {
-      return { text: '한 장 한 장 카드가 생명력을 얻고 있습니다!', emoji: '✨', badge: '순조로운 진행' };
+      return { text: '하나씩 완벽하게 완성되고 있습니다! 멋진 흐름이에요.', emoji: '✨', badge: '순조로운 완성' };
     }
     if (pct < 75) {
-      return { text: '절반을 돌파했습니다! 멋진 창작 속도예요!', emoji: '🔥', badge: '열정의 가속도' };
+      return { text: '목표의 절반을 완성했습니다! 완성에 속도가 붙고 있어요!', emoji: '🔥', badge: '열정의 완성' };
     }
     if (pct < 100) {
-      return { text: '완성이 눈앞입니다! 마지막 마법을 완성하세요!', emoji: '⚡', badge: '완성 임박' };
+      return { text: '완성이 눈앞입니다! 마지막 남은 카드들을 완성해보세요!', emoji: '⚡', badge: '완성 임박' };
     }
-    return { text: '축하합니다! 덱의 모든 카드가 완성되었습니다!', emoji: '👑', badge: '덱 완성 달성' };
+    return { text: '축하합니다! 목표한 모든 카드가 완벽히 완성되었습니다!', emoji: '👑', badge: '목표 전량 완성' };
   };
 
   // Toggle Accordion
@@ -646,16 +646,17 @@ export default function DeckPage() {
       </header>
 
       <div className="max-w-3xl mx-auto px-6 pt-6">
-        {/* 🔮 Deck Progress Energy Bar Widget */}
+        {/* 🔮 Deck Progress Energy Bar Widget (완료된 카드만 게이지에 반영) */}
         {(() => {
           const totalCardsCount = cards.length;
           const doneCount = cards.filter((c) => c.status === 'done').length;
           const workingCount = cards.filter((c) => c.status === 'working').length;
+          const todoCount = cards.filter((c) => c.status === 'todo').length;
           const progressPercent =
             targetCardCount > 0
-              ? Math.min(100, Math.round((totalCardsCount / targetCardCount) * 100))
+              ? Math.min(100, Math.round((doneCount / targetCardCount) * 100))
               : 0;
-          const motivation = getMotivation(totalCardsCount, targetCardCount);
+          const motivation = getMotivation(doneCount, targetCardCount);
           const isFull = progressPercent >= 100;
 
           return (
@@ -675,7 +676,7 @@ export default function DeckPage() {
                     <div>
                       <div className="flex items-center gap-2">
                         <h2 className="text-base font-serif font-bold text-charcoal tracking-wide">
-                          덱 에너지 게이지
+                          덱 완성 에너지 게이지
                         </h2>
                         <span
                           className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold ${
@@ -689,7 +690,7 @@ export default function DeckPage() {
                       </div>
                       <p className="text-xs text-charcoal-light mt-0.5">
                         목표 <span className="font-bold text-brown">{targetCardCount}장</span> 중{' '}
-                        <span className="font-bold text-charcoal">{totalCardsCount}장</span> 등록 ({progressPercent}%)
+                        <span className="font-bold text-emerald-700">{doneCount}장 완료</span> ({progressPercent}%) · 등록됨 {totalCardsCount}장
                       </p>
                     </div>
                   </div>
@@ -798,9 +799,9 @@ export default function DeckPage() {
 
                   {/* Bar Legend / Numbers */}
                   <div className="flex items-center justify-between text-[11px] text-charcoal-light px-1 font-medium">
-                    <span>0장 (0%)</span>
+                    <span>0장 완료 (0%)</span>
                     <span className="font-bold text-brown-dark">
-                      ⚡ {progressPercent}% 충전 완료
+                      ⚡ {doneCount}장 / {targetCardCount}장 완성 ({progressPercent}%)
                     </span>
                     <span>{targetCardCount}장 (100%)</span>
                   </div>
@@ -821,8 +822,11 @@ export default function DeckPage() {
                     <span className="px-2 py-0.5 bg-amber-50 border border-amber-200/80 rounded-md text-amber-800 font-medium">
                       ✏️ 작업중 {workingCount}
                     </span>
-                    <span className="px-2 py-0.5 bg-gray-100 border border-gray-200/80 rounded-md text-gray-700 font-medium">
-                      ⏳ 남은 목표 {Math.max(0, targetCardCount - totalCardsCount)}
+                    <span className="px-2 py-0.5 bg-gray-100 border border-gray-200/80 rounded-md text-gray-600 font-medium">
+                      📝 미작업 {todoCount}
+                    </span>
+                    <span className="px-2 py-0.5 bg-beige border border-beige-dark/80 rounded-md text-brown-dark font-medium">
+                      ⏳ 완성까지 {Math.max(0, targetCardCount - doneCount)}장
                     </span>
                   </div>
                 </div>
