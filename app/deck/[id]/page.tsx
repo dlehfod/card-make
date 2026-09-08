@@ -1,10 +1,71 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { Deck, Card, CardStatus, STATUS_LABELS, STATUS_COLORS } from '@/lib/types';
+
+// 매일 바뀌는 감성 응원 문구 (날짜 기준 고정 선택이라 새로고침해도 하루 동안은 같은 문구가 보여요)
+const DAILY_QUOTES = [
+  '오늘도 한 장, 당신의 세계가 넓어지고 있어요 ✨',
+  '완벽하지 않아도 괜찮아요, 완성해가는 중이니까요 🌷',
+  '카드 한 장 한 장에 당신의 이야기가 담겨요 🔮',
+  '느려도 괜찮아요, 멈추지 않는 게 중요해요 🌱',
+  '오늘 그린 선 하나가 내일의 자신감이 됩니다 💫',
+  '작은 진전도 진전이에요, 스스로를 칭찬해주세요 💖',
+  '이 덱을 완성할 사람은 오직 당신뿐이에요 👑',
+  '쉬어가도 좋아요, 다시 돌아오면 되니까요 🍃',
+  '당신의 감성이 담긴 카드, 벌써 기대돼요 🎨',
+  '한 장씩 쌓이는 노력이 결국 멋진 덱이 됩니다 🃏',
+];
+
+function getDailyQuote(): string {
+  const now = new Date();
+  const start = new Date(now.getFullYear(), 0, 0);
+  const dayOfYear = Math.floor((now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+  return DAILY_QUOTES[dayOfYear % DAILY_QUOTES.length];
+}
+
+function getTodayStr(d: Date = new Date()): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+// 카드 완료 시 살짝 터지는 축하 이펙트
+function ConfettiBurst() {
+  const particles = useMemo(() => {
+    const emojis = ['🎉', '✨', '🌸', '💖', '⭐', '🎊'];
+    return Array.from({ length: 22 }).map((_, i) => ({
+      id: i,
+      emoji: emojis[Math.floor(Math.random() * emojis.length)],
+      left: Math.random() * 100,
+      delay: Math.random() * 0.25,
+      duration: 1.1 + Math.random() * 0.7,
+      drift: Math.round((Math.random() - 0.5) * 160),
+      size: 14 + Math.random() * 12,
+    }));
+  }, []);
+
+  return (
+    <div className="fixed inset-0 pointer-events-none z-100 overflow-hidden">
+      {particles.map((p) => (
+        <span
+          key={p.id}
+          className="absolute top-1/3 confetti-particle"
+          style={{
+            left: `${p.left}%`,
+            fontSize: `${p.size}px`,
+            animationDelay: `${p.delay}s`,
+            animationDuration: `${p.duration}s`,
+            ['--drift-x' as string]: `${p.drift}px`,
+          } as React.CSSProperties}
+        >
+          {p.emoji}
+        </span>
+      ))}
+    </div>
+  );
+}
 
 export default function DeckPage() {
   const params = useParams();
@@ -19,6 +80,42 @@ export default function DeckPage() {
   const [targetCardCount, setTargetCardCount] = useState<number>(78);
   const [isEditingTarget, setIsEditingTarget] = useState<boolean>(false);
   const [tempTargetCount, setTempTargetCount] = useState<string>('78');
+
+  // Motivation Extras: 연속 작업일 스트릭 & 완료 축하 이펙트
+  const [streakCount, setStreakCount] = useState<number>(0);
+  const [celebrations, setCelebrations] = useState<number[]>([]);
+
+  const triggerCelebration = () => {
+    const id = Date.now() + Math.random();
+    setCelebrations((prev) => [...prev, id]);
+    setTimeout(() => {
+      setCelebrations((prev) => prev.filter((c) => c !== id));
+    }, 2200);
+  };
+
+  // 카드를 '완료'로 바꾼 활동을 오늘 날짜로 기록하고 연속일 계산
+  const registerCompletionActivity = () => {
+    if (!deckId) return;
+    try {
+      const key = `deck_streak_${deckId}`;
+      const todayStr = getTodayStr();
+      const raw = localStorage.getItem(key);
+      const data: { lastDate: string; streak: number } = raw
+        ? JSON.parse(raw)
+        : { lastDate: '', streak: 0 };
+
+      if (data.lastDate !== todayStr) {
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        data.streak = data.lastDate === getTodayStr(yesterday) ? data.streak + 1 : 1;
+        data.lastDate = todayStr;
+        localStorage.setItem(key, JSON.stringify(data));
+      }
+      setStreakCount(data.streak);
+    } catch (e) {
+      console.error('Failed to update streak:', e);
+    }
+  };
 
   // Accordion: which card is currently expanded (or null)
   const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
@@ -223,6 +320,23 @@ export default function DeckPage() {
     }
   }, [deckId]);
 
+  // Load Existing Streak from LocalStorage (증가 없이 표시만)
+  useEffect(() => {
+    if (!deckId) return;
+    try {
+      const raw = localStorage.getItem(`deck_streak_${deckId}`);
+      if (raw) {
+        const data = JSON.parse(raw) as { lastDate: string; streak: number };
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        const stillValid = data.lastDate === getTodayStr() || data.lastDate === getTodayStr(yesterday);
+        setStreakCount(stillValid ? data.streak || 0 : 0);
+      }
+    } catch (e) {
+      console.error('Failed to load streak:', e);
+    }
+  }, [deckId]);
+
   // Save Target Card Count
   const handleSaveTargetCount = (newCount?: number) => {
     const valueToSave = newCount !== undefined ? newCount : parseInt(tempTargetCount, 10);
@@ -271,6 +385,9 @@ export default function DeckPage() {
   const handleSaveEdit = async (cardId: string) => {
     setSavingCard(true);
 
+    const wasNotDone = cards.find((c) => c.id === cardId)?.status !== 'done';
+    const willBeDone = editForm.status === 'done';
+
     const updateData: Record<string, unknown> = {
       card_number: editForm.card_number.trim(),
       name: editForm.name.trim(),
@@ -313,6 +430,10 @@ export default function DeckPage() {
     setEditingCardId(null);
     setExpandedCardId(null);
     setSavingCard(false);
+    if (wasNotDone && willBeDone) {
+      triggerCelebration();
+      registerCompletionActivity();
+    }
     await fetchCards();
   };
 
@@ -327,6 +448,10 @@ export default function DeckPage() {
       setCards((prev) =>
         prev.map((c) => (c.id === card.id ? { ...c, status: newStatus } : c))
       );
+      if (card.status !== 'done' && newStatus === 'done') {
+        triggerCelebration();
+        registerCompletionActivity();
+      }
     }
   };
 
@@ -644,6 +769,14 @@ export default function DeckPage() {
                   <h2 className="text-[13px] font-semibold text-[#8C4A38]">
                     덱 완성도
                   </h2>
+                  {streakCount > 1 && (
+                    <span
+                      className="inline-flex items-center gap-0.5 text-[11px] font-bold text-[#D9722C] bg-[#FFF1E0] border border-[#F5D9B8] rounded-full px-1.5 py-0.5"
+                      title="연속으로 카드를 완료한 날"
+                    >
+                      🔥{streakCount}일
+                    </span>
+                  )}
                   {isEditingTarget ? (
                     <span className="flex items-center gap-1 ml-1">
                       <input
@@ -710,9 +843,19 @@ export default function DeckPage() {
                   미작업 <strong className="text-[#8C4A38]">{todoCount}</strong>
                 </span>
               </div>
+
+              {/* Daily Quote: 오늘의 한마디 */}
+              <p className="mt-2 pt-2 border-t border-[#F2DFD5] text-[11px] text-[#B78777] italic truncate break-keep">
+                💌 {getDailyQuote()}
+              </p>
             </div>
           );
         })()}
+
+        {/* 🎉 Card Completion Celebration Overlay */}
+        {celebrations.map((id) => (
+          <ConfettiBurst key={id} />
+        ))}
 
         {/* Top Actions: Add Card Button & Search */}
         <div className="flex items-center gap-2.5 mb-5">
