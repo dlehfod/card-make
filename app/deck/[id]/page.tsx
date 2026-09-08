@@ -158,13 +158,37 @@ export default function DeckPage() {
     if (data) setDeck(data);
   };
 
+  // 자연 정렬: "3"과 "21" 같은 숫자 문자열을 값 기준으로 비교 (문자열 사전순 방지)
+  const naturalCompareCardNumber = (a: string, b: string): number => {
+    const chunk = (s: string) => s.match(/(\d+|\D+)/g) || [];
+    const ax = chunk(a);
+    const bx = chunk(b);
+    const len = Math.max(ax.length, bx.length);
+    for (let i = 0; i < len; i++) {
+      const av = ax[i] ?? '';
+      const bv = bx[i] ?? '';
+      const an = Number(av);
+      const bn = Number(bv);
+      const bothNumeric = av !== '' && bv !== '' && !isNaN(an) && !isNaN(bn);
+      if (bothNumeric) {
+        if (an !== bn) return an - bn;
+      } else {
+        const cmp = av.localeCompare(bv);
+        if (cmp !== 0) return cmp;
+      }
+    }
+    return 0;
+  };
+
   const fetchCards = async () => {
     const { data } = await supabase
       .from('cards')
       .select('*')
-      .eq('deck_id', deckId)
-      .order('card_number', { ascending: true });
-    setCards(data || []);
+      .eq('deck_id', deckId);
+    const sorted = [...(data || [])].sort((a, b) =>
+      naturalCompareCardNumber(a.card_number, b.card_number)
+    );
+    setCards(sorted);
   };
 
   useEffect(() => {
