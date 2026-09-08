@@ -155,6 +155,15 @@ select:focus {
   }
 }
 
+@keyframes soft-float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
+}
+
 .animate-energy-shimmer {
   animation: energy-shimmer 2.5s infinite linear;
 }
@@ -162,4 +171,9 @@ select:focus {
 .animate-energy-glow {
   animation: energy-glow 2s infinite ease-in-out;
 }
+
+.animate-soft-float {
+  animation: soft-float 3s ease-in-out infinite;
+}
+
 

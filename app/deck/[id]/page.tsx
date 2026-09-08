@@ -623,7 +623,7 @@ export default function DeckPage() {
       </header>
 
       <div className="max-w-3xl mx-auto px-6 pt-6">
-        {/* ✦ Clean & Elegant Deck Progress Bar (완료된 카드만 반영) */}
+        {/* 🌸 Pretty & Aesthetic Deck Progress Bar (완료된 카드만 반영) */}
         {(() => {
           const totalCardsCount = cards.length;
           const doneCount = cards.filter((c) => c.status === 'done').length;
@@ -634,30 +634,47 @@ export default function DeckPage() {
               ? Math.min(100, Math.round((doneCount / targetCardCount) * 100))
               : 0;
           const remaining = Math.max(0, targetCardCount - doneCount);
+          const isFull = progressPercent >= 100;
 
           return (
-            <div className="bg-warm-white border border-beige-dark/60 rounded-2xl p-5 mb-6 shadow-xs">
-              {/* Top Row: Title & Percentage & Target Setting */}
-              <div className="flex items-center justify-between mb-3">
+            <div className="bg-gradient-to-br from-[#FFFDFC] via-[#FFF8F3] to-[#FDF3ED] border border-[#F0DCD3]/90 rounded-3xl p-5 sm:p-6 mb-6 shadow-[0_4px_24px_rgba(230,195,180,0.18)] relative overflow-hidden">
+              {/* Subtle Ambient Sparkle Tint when 100% */}
+              {isFull && (
+                <div className="absolute inset-0 bg-gradient-to-r from-rose-100/30 via-amber-100/30 to-pink-100/30 animate-pulse pointer-events-none" />
+              )}
+
+              {/* Top Row: Aesthetic Icon + Title & Percentage */}
+              <div className="flex items-center justify-between gap-3 mb-3.5 relative z-10">
                 <div className="flex items-center gap-3">
-                  <span className="text-xs font-bold text-brown uppercase tracking-widest flex items-center gap-1.5">
-                    <span>✦</span>
-                    <span>DECK PROGRESS</span>
-                  </span>
-                  <span className="text-xs text-charcoal-light font-medium">
-                    <strong className="text-charcoal font-bold">{doneCount}</strong> / {targetCardCount}장 완료
-                  </span>
+                  <div className="w-9 h-9 rounded-2xl bg-white/90 border border-[#F3D7CC] flex items-center justify-center shadow-xs animate-soft-float">
+                    <span className="text-lg">{isFull ? '👑' : '🌸'}</span>
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h2 className="text-sm font-serif font-bold text-[#8C4A38] tracking-wide flex items-center gap-1.5">
+                        <span>타로 덱 완성도</span>
+                        <span className="text-xs">✨</span>
+                      </h2>
+                    </div>
+                    <p className="text-xs text-[#A66E60] mt-0.5 font-normal">
+                      목표 <span className="font-semibold text-[#8C4A38]">{targetCardCount}장</span> 중{' '}
+                      <span className="font-bold text-[#D96B50]">{doneCount}장 완성</span>
+                      {remaining > 0 ? ` (앞으로 ${remaining}장 남음 💖)` : ' (전량 완성 달성! 🎉)'}
+                    </p>
+                  </div>
                 </div>
 
                 <div className="flex items-center gap-3">
-                  <span className="font-serif text-2xl font-bold text-brown-dark tracking-tight">
-                    {progressPercent}%
-                  </span>
+                  <div className="text-right">
+                    <span className="font-serif text-3xl sm:text-4xl font-bold bg-gradient-to-r from-[#D96B50] via-[#C85A3F] to-[#E58870] bg-clip-text text-transparent tracking-tight">
+                      {progressPercent}%
+                    </span>
+                  </div>
 
-                  {/* Target Card Count Setting */}
+                  {/* Target Card Setting Pill */}
                   {isEditingTarget ? (
-                    <div className="flex items-center gap-1 bg-white border border-gold/70 rounded-lg px-2 py-0.5 shadow-xs">
-                      <span className="text-[11px] text-charcoal-light">목표:</span>
+                    <div className="flex items-center gap-1 bg-white border border-[#E8B4A2] rounded-xl px-2 py-1 shadow-xs">
+                      <span className="text-[11px] text-[#A66E60]">목표:</span>
                       <input
                         type="number"
                         min="1"
@@ -671,13 +688,13 @@ export default function DeckPage() {
                             setIsEditingTarget(false);
                           }
                         }}
-                        className="w-12 text-center font-bold text-charcoal text-xs bg-transparent border-b border-beige-dark focus:border-gold py-0.5"
+                        className="w-12 text-center font-bold text-[#8C4A38] text-xs bg-[#FFFBF8] border border-[#F0DCD3] rounded-md focus:border-[#D96B50] py-0.5"
                         autoFocus
                       />
-                      <span className="text-[11px] text-charcoal-light">장</span>
+                      <span className="text-[11px] text-[#A66E60]">장</span>
                       <button
                         onClick={() => handleSaveTargetCount()}
-                        className="px-1.5 py-0.5 bg-charcoal text-ivory rounded text-[10px] font-bold ml-1 hover:bg-brown-dark"
+                        className="px-2 py-0.5 bg-[#8C4A38] hover:bg-[#6E3626] text-white rounded-md text-[10px] font-bold ml-1 transition-colors"
                       >
                         저장
                       </button>
@@ -686,7 +703,7 @@ export default function DeckPage() {
                           setTempTargetCount(targetCardCount.toString());
                           setIsEditingTarget(false);
                         }}
-                        className="text-charcoal-light hover:text-charcoal text-[10px] px-1"
+                        className="text-[#A66E60] hover:text-[#8C4A38] text-[10px] px-1"
                       >
                         ✕
                       </button>
@@ -697,46 +714,61 @@ export default function DeckPage() {
                         setTempTargetCount(targetCardCount.toString());
                         setIsEditingTarget(true);
                       }}
-                      className="text-[11px] text-charcoal-light/70 hover:text-brown underline decoration-dotted underline-offset-2 transition-colors"
-                      title="클릭하여 목표 장수 수정"
+                      className="group flex items-center gap-1 px-2.5 py-1 bg-white/80 hover:bg-white border border-[#ECD1C6] hover:border-[#D96B50]/60 rounded-full text-[11px] font-medium text-[#9C5A48] shadow-2xs hover:shadow-xs transition-all"
+                      title="클릭하여 목표 장수 변경"
                     >
-                      목표 {targetCardCount}장 ✎
+                      <span>🎯 목표 {targetCardCount}장</span>
+                      <span className="text-[9px] text-[#C4806E] group-hover:text-[#9C5A48]">✎</span>
                     </button>
                   )}
                 </div>
               </div>
 
-              {/* Sleek Energy Progress Bar */}
-              <div className="relative h-2.5 w-full bg-[#EAE4DC] rounded-full overflow-hidden">
-                <div
-                  className={`h-full rounded-full transition-all duration-700 ease-out relative overflow-hidden ${
-                    progressPercent >= 100
-                      ? 'bg-gradient-to-r from-amber-400 via-gold to-emerald-500 shadow-sm'
-                      : 'bg-gradient-to-r from-amber-500 via-gold to-yellow-400'
-                  }`}
-                  style={{
-                    width: `${Math.max(progressPercent > 0 ? 2 : 0, Math.min(100, progressPercent))}%`,
-                  }}
-                >
-                  {/* Subtle Light Shimmer Animation */}
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent animate-energy-shimmer" />
+              {/* Aesthetic Rose-Gold & Peach Progress Bar */}
+              <div className="space-y-2 relative z-10">
+                <div className="relative h-3.5 w-full bg-[#F3E6DF] rounded-full p-0.5 border border-[#EBD6CC] shadow-inner overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all duration-700 ease-out relative overflow-hidden flex items-center justify-end pr-1 ${
+                      isFull
+                        ? 'bg-gradient-to-r from-[#F472B6] via-[#FB7185] to-[#FBBF24] shadow-md animate-energy-glow'
+                        : 'bg-gradient-to-r from-[#FCA5A5] via-[#FB7185] to-[#FCD34D] shadow-xs'
+                    }`}
+                    style={{
+                      width: `${Math.max(progressPercent > 0 ? 3 : 0, Math.min(100, progressPercent))}%`,
+                    }}
+                  >
+                    {/* Shimmer Light Beam */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/50 to-transparent animate-energy-shimmer" />
+
+                    {/* Cute glowing sparkle bulb at tip */}
+                    {progressPercent > 0 && (
+                      <span className="relative w-1.5 h-1.5 rounded-full bg-white shadow-[0_0_6px_#FFF] animate-ping" style={{ animationDuration: '2.5s' }} />
+                    )}
+                  </div>
                 </div>
               </div>
 
-              {/* Bottom Row: Minimal Status Text */}
-              <div className="flex items-center justify-between text-[11px] text-charcoal-light mt-2.5 px-0.5">
-                <div className="flex items-center gap-2">
-                  <span>완료 <strong className="text-charcoal font-semibold">{doneCount}</strong></span>
-                  <span className="text-beige-dark">·</span>
-                  <span>작업중 <strong className="text-charcoal font-semibold">{workingCount}</strong></span>
-                  <span className="text-beige-dark">·</span>
-                  <span>미작업 <strong className="text-charcoal font-semibold">{todoCount}</strong></span>
-                  <span className="text-beige-dark">·</span>
-                  <span>전체 등록 <strong className="text-charcoal font-semibold">{totalCardsCount}</strong></span>
+              {/* Bottom Row: Cute Pastel Status Pills */}
+              <div className="flex flex-wrap items-center justify-between gap-2 mt-3.5 pt-3 border-t border-[#F2DDD3]/60 relative z-10">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#FFEBE5] text-[#C04D33] border border-[#F8CEC2]">
+                    <span>✨</span>
+                    <span>완료 <strong>{doneCount}</strong></span>
+                  </span>
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#FFF4E5] text-[#A66820] border border-[#F8DFBA]">
+                    <span>🎨</span>
+                    <span>작업중 <strong>{workingCount}</strong></span>
+                  </span>
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#F8F5F2] text-[#7A6B63] border border-[#EAE3DC]">
+                    <span>📝</span>
+                    <span>미작업 <strong>{todoCount}</strong></span>
+                  </span>
                 </div>
-                <span className="font-medium text-brown-dark">
-                  {remaining === 0 ? '✦ 모든 카드 완성!' : `남은 목표 ${remaining}장`}
-                </span>
+
+                <div className="text-xs font-medium text-[#9C5A48] flex items-center gap-1.5">
+                  <span className="text-sm">🌷</span>
+                  <span>전체 등록 <strong className="text-[#8C4A38]">{totalCardsCount}</strong>장</span>
+                </div>
               </div>
             </div>
           );
