@@ -238,24 +238,31 @@ export default function ChatBoard() {
 
   // User Selection Screen
   if (!currentUser) {
-    const totalUnread = messages.filter((m) => !m.is_read).length;
+    // 보낸 사람별 미읽음 개수 (합계 대신 누구의 메시지인지 표시)
+    const unreadBySender = (['doyoung', 'hyojae'] as Sender[])
+      .map((sender) => ({
+        sender,
+        count: messages.filter((m) => m.sender === sender && !m.is_read).length,
+      }))
+      .filter((u) => u.count > 0);
+
     return (
       <div className="bg-warm-white border border-beige-dark/70 rounded-3xl p-6 shadow-sm relative">
-        {totalUnread > 0 && (
-          <div className="absolute -top-3 -right-3 z-10">
-            <span className="inline-flex items-center justify-center min-w-[36px] h-9 px-3 bg-red-500 text-white text-base font-bold rounded-full shadow-lg animate-pulse">
-              💬 {totalUnread}
-            </span>
-          </div>
-        )}
         <div className="text-center py-6">
           <span className="text-3xl mb-3 block">🔮</span>
           <h3 className="text-lg font-serif font-bold text-charcoal tracking-wide mb-1">
             두 타로마스터의 대화방
           </h3>
-          {totalUnread > 0 ? (
+          {unreadBySender.length > 0 ? (
             <p className="text-xs text-red-500 font-bold mb-6 animate-pulse">
-              📢 새로운 메시지 {totalUnread}개가 있어요!
+              📢{' '}
+              {unreadBySender
+                .map(
+                  (u) =>
+                    `${PROFILE_INFO[u.sender].nickname}의 메시지 ${u.count}개`
+                )
+                .join(', ')}
+              가 아직 안 읽혔어요!
             </p>
           ) : (
             <p className="text-xs text-charcoal-light mb-6">
@@ -276,7 +283,7 @@ export default function ChatBoard() {
                   className="group relative flex flex-col items-center gap-3 p-5 bg-gradient-to-b from-[#FAF6EE] to-warm-white border-2 border-beige-dark/40 rounded-2xl hover:border-gold/60 hover:shadow-md transition-all"
                 >
                   {myUnread > 0 && (
-                    <span className="absolute -top-2 -right-2 inline-flex items-center justify-center min-w-[24px] h-6 px-1.5 bg-red-500 text-white text-xs font-bold rounded-full shadow-md">
+                    <span className="absolute -top-2.5 -right-2.5 inline-flex items-center justify-center min-w-[28px] h-7 px-2 bg-red-500 text-white text-sm font-bold rounded-full shadow-lg animate-pulse">
                       {myUnread}
                     </span>
                   )}
