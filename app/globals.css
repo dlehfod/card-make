@@ -135,3 +135,31 @@ select:focus {
 .chat-scroll::-webkit-scrollbar-thumb:hover {
   background: var(--color-brown);
 }
+
+/* Energy Bar Animations */
+@keyframes energy-shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(200%);
+  }
+}
+
+@keyframes energy-glow {
+  0%, 100% {
+    filter: drop-shadow(0 0 3px rgba(201, 169, 110, 0.4));
+  }
+  50% {
+    filter: drop-shadow(0 0 8px rgba(201, 169, 110, 0.8));
+  }
+}
+
+.animate-energy-shimmer {
+  animation: energy-shimmer 2.5s infinite linear;
+}
+
+.animate-energy-glow {
+  animation: energy-glow 2s infinite ease-in-out;
+}
+

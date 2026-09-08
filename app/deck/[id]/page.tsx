@@ -15,6 +15,11 @@ export default function DeckPage() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
 
+  // Target Card Count for Energy Progress Bar
+  const [targetCardCount, setTargetCardCount] = useState<number>(78);
+  const [isEditingTarget, setIsEditingTarget] = useState<boolean>(false);
+  const [tempTargetCount, setTempTargetCount] = useState<string>('78');
+
   // Accordion: which card is currently expanded (or null)
   const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
 
@@ -199,6 +204,64 @@ export default function DeckPage() {
     };
     load();
   }, [deckId]);
+
+  // Load Saved Target Card Count from LocalStorage
+  useEffect(() => {
+    if (deckId) {
+      try {
+        const saved = localStorage.getItem(`deck_target_count_${deckId}`);
+        if (saved) {
+          const parsed = parseInt(saved, 10);
+          if (!isNaN(parsed) && parsed > 0) {
+            setTargetCardCount(parsed);
+            setTempTargetCount(saved);
+          }
+        }
+      } catch (e) {
+        console.error('Failed to load target card count:', e);
+      }
+    }
+  }, [deckId]);
+
+  // Save Target Card Count
+  const handleSaveTargetCount = (newCount?: number) => {
+    const valueToSave = newCount !== undefined ? newCount : parseInt(tempTargetCount, 10);
+    if (!isNaN(valueToSave) && valueToSave > 0) {
+      setTargetCardCount(valueToSave);
+      setTempTargetCount(valueToSave.toString());
+      try {
+        localStorage.setItem(`deck_target_count_${deckId}`, valueToSave.toString());
+      } catch (e) {
+        console.error('Failed to save target card count:', e);
+      }
+    } else {
+      setTempTargetCount(targetCardCount.toString());
+    }
+    setIsEditingTarget(false);
+  };
+
+  // Get Motivation Details based on progress
+  const getMotivation = (current: number, target: number) => {
+    if (target <= 0) return { text: '목표 장수를 설정해주세요!', emoji: '🎯', badge: '목표 미설정' };
+    const pct = Math.min(100, Math.round((current / target) * 100));
+
+    if (current === 0) {
+      return { text: '위대한 타로 덱의 첫 카드를 등록해보세요!', emoji: '🔮', badge: '여정의 시작' };
+    }
+    if (pct < 25) {
+      return { text: '첫 발을 내디뎠습니다! 창작의 에너지가 모이고 있어요.', emoji: '🌱', badge: '에너지 충전 중' };
+    }
+    if (pct < 50) {
+      return { text: '한 장 한 장 카드가 생명력을 얻고 있습니다!', emoji: '✨', badge: '순조로운 진행' };
+    }
+    if (pct < 75) {
+      return { text: '절반을 돌파했습니다! 멋진 창작 속도예요!', emoji: '🔥', badge: '열정의 가속도' };
+    }
+    if (pct < 100) {
+      return { text: '완성이 눈앞입니다! 마지막 마법을 완성하세요!', emoji: '⚡', badge: '완성 임박' };
+    }
+    return { text: '축하합니다! 덱의 모든 카드가 완성되었습니다!', emoji: '👑', badge: '덱 완성 달성' };
+  };
 
   // Toggle Accordion
   const toggleExpand = (card: Card) => {
@@ -583,6 +646,191 @@ export default function DeckPage() {
       </header>
 
       <div className="max-w-3xl mx-auto px-6 pt-6">
+        {/* 🔮 Deck Progress Energy Bar Widget */}
+        {(() => {
+          const totalCardsCount = cards.length;
+          const doneCount = cards.filter((c) => c.status === 'done').length;
+          const workingCount = cards.filter((c) => c.status === 'working').length;
+          const progressPercent =
+            targetCardCount > 0
+              ? Math.min(100, Math.round((totalCardsCount / targetCardCount) * 100))
+              : 0;
+          const motivation = getMotivation(totalCardsCount, targetCardCount);
+          const isFull = progressPercent >= 100;
+
+          return (
+            <div className="bg-gradient-to-b from-warm-white to-[#FBF8F2] border border-gold/40 rounded-3xl p-5 sm:p-6 mb-6 shadow-sm relative overflow-hidden">
+              {/* Shimmer Ambient Background when Completed */}
+              {isFull && (
+                <div className="absolute inset-0 bg-gradient-to-r from-gold/5 via-amber-200/20 to-gold/5 animate-pulse pointer-events-none" />
+              )}
+
+              <div className="relative z-10 space-y-4">
+                {/* Upper Row: Title & Target Setup */}
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5">
+                    <span className="text-2xl animate-bounce" style={{ animationDuration: '2s' }}>
+                      {isFull ? '👑' : '🔮'}
+                    </span>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h2 className="text-base font-serif font-bold text-charcoal tracking-wide">
+                          덱 에너지 게이지
+                        </h2>
+                        <span
+                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold ${
+                            isFull
+                              ? 'bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-xs'
+                              : 'bg-amber-100/80 text-amber-900 border border-amber-300/60'
+                          }`}
+                        >
+                          {motivation.badge}
+                        </span>
+                      </div>
+                      <p className="text-xs text-charcoal-light mt-0.5">
+                        목표 <span className="font-bold text-brown">{targetCardCount}장</span> 중{' '}
+                        <span className="font-bold text-charcoal">{totalCardsCount}장</span> 등록 ({progressPercent}%)
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Target Count Edit / Input */}
+                  <div className="flex items-center gap-2">
+                    {isEditingTarget ? (
+                      <div className="flex items-center gap-1.5 bg-white border border-gold/70 rounded-xl px-2 py-1 shadow-xs animate-in fade-in">
+                        <span className="text-xs text-charcoal-light font-medium pl-1">목표:</span>
+                        <input
+                          type="number"
+                          min="1"
+                          max="999"
+                          value={tempTargetCount}
+                          onChange={(e) => setTempTargetCount(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') handleSaveTargetCount();
+                            if (e.key === 'Escape') {
+                              setTempTargetCount(targetCardCount.toString());
+                              setIsEditingTarget(false);
+                            }
+                          }}
+                          className="w-14 text-center font-bold text-charcoal text-sm bg-ivory border border-beige-dark/60 rounded-md py-0.5 focus:border-gold"
+                          autoFocus
+                        />
+                        <span className="text-xs text-charcoal-light">장</span>
+                        <button
+                          onClick={() => handleSaveTargetCount()}
+                          className="px-2 py-1 bg-charcoal text-ivory hover:bg-brown-dark rounded-md text-[11px] font-bold ml-1 transition-all"
+                        >
+                          저장
+                        </button>
+                        <button
+                          onClick={() => {
+                            setTempTargetCount(targetCardCount.toString());
+                            setIsEditingTarget(false);
+                          }}
+                          className="px-1.5 py-1 text-charcoal-light hover:text-charcoal text-[11px]"
+                        >
+                          취소
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={() => {
+                            setTempTargetCount(targetCardCount.toString());
+                            setIsEditingTarget(true);
+                          }}
+                          className="group flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-beige border border-beige-dark/70 hover:border-gold/60 rounded-xl text-xs font-semibold text-charcoal transition-all shadow-xs"
+                          title="클릭하여 목표 카드 수 변경"
+                        >
+                          <span>🎯 목표: <strong className="text-brown">{targetCardCount}장</strong></span>
+                          <span className="text-[10px] text-charcoal-light/60 group-hover:text-brown">✏️ 변경</span>
+                        </button>
+                        {/* Quick Presets */}
+                        {targetCardCount !== 78 && (
+                          <button
+                            onClick={() => handleSaveTargetCount(78)}
+                            className="px-2 py-1 bg-beige/60 hover:bg-beige border border-beige-dark/40 rounded-lg text-[10px] text-charcoal-light font-medium hover:text-brown"
+                            title="기본 타로 78장으로 설정"
+                          >
+                            78장
+                          </button>
+                        )}
+                        {targetCardCount !== 22 && (
+                          <button
+                            onClick={() => handleSaveTargetCount(22)}
+                            className="px-2 py-1 bg-beige/60 hover:bg-beige border border-beige-dark/40 rounded-lg text-[10px] text-charcoal-light font-medium hover:text-brown"
+                            title="메이저 아르카나 22장으로 설정"
+                          >
+                            22장
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Energy Progress Bar Graphic */}
+                <div className="space-y-1.5">
+                  <div className="relative h-6 w-full bg-[#EAE2D5] rounded-full p-1 border border-gold/40 shadow-inner overflow-hidden">
+                    {/* Fill Gauge */}
+                    <div
+                      className={`h-full rounded-full transition-all duration-700 ease-out relative overflow-hidden flex items-center justify-end pr-2 ${
+                        isFull
+                          ? 'bg-gradient-to-r from-amber-400 via-gold to-emerald-400 shadow-md animate-energy-glow'
+                          : 'bg-gradient-to-r from-amber-500 via-gold to-yellow-300 shadow-sm'
+                      }`}
+                      style={{
+                        width: `${Math.max(progressPercent > 0 ? 4 : 0, Math.min(100, progressPercent))}%`,
+                      }}
+                    >
+                      {/* Animated Light Shimmer Beam */}
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/50 to-transparent animate-energy-shimmer" />
+
+                      {/* Glowing Energy Tip Bulb */}
+                      {progressPercent > 0 && (
+                        <span
+                          className="relative w-2 h-2 rounded-full bg-white shadow-md animate-ping"
+                          style={{ animationDuration: '3s' }}
+                        />
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Bar Legend / Numbers */}
+                  <div className="flex items-center justify-between text-[11px] text-charcoal-light px-1 font-medium">
+                    <span>0장 (0%)</span>
+                    <span className="font-bold text-brown-dark">
+                      ⚡ {progressPercent}% 충전 완료
+                    </span>
+                    <span>{targetCardCount}장 (100%)</span>
+                  </div>
+                </div>
+
+                {/* Bottom Row: Motivation Message & Status Summary */}
+                <div className="pt-2 border-t border-beige-dark/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5">
+                  <div className="flex items-center gap-1.5 text-xs font-semibold text-charcoal">
+                    <span>{motivation.emoji}</span>
+                    <span className="text-brown-dark">{motivation.text}</span>
+                  </div>
+
+                  {/* Mini Status Breakdown Chips */}
+                  <div className="flex items-center gap-2 text-[11px]">
+                    <span className="px-2 py-0.5 bg-emerald-50 border border-emerald-200/80 rounded-md text-emerald-800 font-medium">
+                      ✨ 완료 {doneCount}
+                    </span>
+                    <span className="px-2 py-0.5 bg-amber-50 border border-amber-200/80 rounded-md text-amber-800 font-medium">
+                      ✏️ 작업중 {workingCount}
+                    </span>
+                    <span className="px-2 py-0.5 bg-gray-100 border border-gray-200/80 rounded-md text-gray-700 font-medium">
+                      ⏳ 남은 목표 {Math.max(0, targetCardCount - totalCardsCount)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
         {/* Top Actions: Add Card Button & Search */}
         <div className="flex flex-col sm:flex-row gap-3 mb-6">
           <button
