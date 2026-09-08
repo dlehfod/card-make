@@ -627,7 +627,8 @@ export default function DeckPage() {
         {(() => {
           const doneCount = cards.filter((c) => c.status === 'done').length;
           const workingCount = cards.filter((c) => c.status === 'working').length;
-          const todoCount = cards.filter((c) => c.status === 'todo').length;
+          // 미작업 = 전체 목표 장수 기준 (아직 카드로 등록조차 안 된 것도 포함)
+          const todoCount = Math.max(0, targetCardCount - doneCount - workingCount);
           const progressPercent =
             targetCardCount > 0
               ? Math.min(100, Math.round((doneCount / targetCardCount) * 100))
