@@ -772,9 +772,8 @@ export default function DeckPage() {
         {/* 🌷 Simple & Cute Deck Progress Bar (완료된 카드만 반영) */}
         {(() => {
           const doneCount = cards.filter((c) => c.status === 'done').length;
-          const workingCount = cards.filter((c) => c.status === 'working').length;
-          // 미작업 = 전체 목표 장수 기준 (아직 카드로 등록조차 안 된 것도 포함)
-          const todoCount = Math.max(0, targetCardCount - doneCount - workingCount);
+          // 미작업 = 전체 목표 장수 - 완료 장수 (등록되지 않은 카드 포함)
+          const todoCount = Math.max(0, targetCardCount - doneCount);
           const progressPercent =
             targetCardCount > 0
               ? Math.min(100, Math.round((doneCount / targetCardCount) * 100))
@@ -858,8 +857,6 @@ export default function DeckPage() {
               <div className="mt-2 text-[11px] text-[#A88B7E]">
                 <span>
                   완료 <strong className="text-[#8C4A38]">{doneCount}</strong>
-                  <span className="mx-1 text-[#E5D0C5]">·</span>
-                  작업중 <strong className="text-[#8C4A38]">{workingCount}</strong>
                   <span className="mx-1 text-[#E5D0C5]">·</span>
                   미작업 <strong className="text-[#8C4A38]">{todoCount}</strong>
                 </span>
