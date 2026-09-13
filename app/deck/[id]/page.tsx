@@ -82,6 +82,25 @@ function ConfettiBurst() {
   );
 }
 
+// 읽음 요청 발송자 및 라벨 판별 함수
+function getCardReadNotice(card: Card): { requester: 'doyoung' | 'hyojae' | 'unknown'; label: string } | null {
+  const doyoungUnread = card.notes_read_by_doyoung === false || card.feedback_read_by_doyoung === false;
+  const hyojaeUnread = card.notes_read_by_hyojae === false || card.feedback_read_by_hyojae === false;
+
+  if (!doyoungUnread && !hyojaeUnread) return null;
+
+  const lastEditor = card.notes_last_editor || card.feedback_last_editor;
+
+  if (lastEditor === 'doyoung' || (hyojaeUnread && !doyoungUnread)) {
+    return { requester: 'doyoung', label: '📢 점술신이 읽음 요청함!' };
+  }
+  if (lastEditor === 'hyojae' || (doyoungUnread && !hyojaeUnread)) {
+    return { requester: 'hyojae', label: '📢 로율이 읽음 요청함!' };
+  }
+
+  return { requester: 'unknown', label: '📢 읽어주세요!' };
+}
+
 export default function DeckPage() {
   const params = useParams();
   const deckId = params.id as string;
@@ -176,6 +195,7 @@ export default function DeckPage() {
     notes: '',
     image_feedback: '',
     status: 'todo' as CardStatus,
+    read_request_by: null as 'doyoung' | 'hyojae' | null,
   });
   const [creatingCard, setCreatingCard] = useState(false);
   const [uploadingCardId, setUploadingCardId] = useState<string | null>(null);
@@ -597,19 +617,38 @@ export default function DeckPage() {
     }
     setCreatingCard(true);
 
+    const insertData: Record<string, unknown> = {
+      deck_id: deckId,
+      card_number: newCard.card_number.trim(),
+      name: newCard.name.trim(),
+      meaning: newCard.meaning.trim() || null,
+      keywords: newCard.keywords.trim() || null,
+      one_line: newCard.one_line.trim() || null,
+      notes: newCard.notes.trim() || null,
+      image_feedback: newCard.image_feedback.trim() || null,
+      status: newCard.status,
+    };
+
+    if (newCard.read_request_by) {
+      const editor = newCard.read_request_by;
+      insertData.notes_last_editor = editor;
+      insertData.feedback_last_editor = editor;
+      if (editor === 'doyoung') {
+        insertData.notes_read_by_doyoung = true;
+        insertData.notes_read_by_hyojae = false;
+        insertData.feedback_read_by_doyoung = true;
+        insertData.feedback_read_by_hyojae = false;
+      } else {
+        insertData.notes_read_by_doyoung = false;
+        insertData.notes_read_by_hyojae = true;
+        insertData.feedback_read_by_doyoung = false;
+        insertData.feedback_read_by_hyojae = true;
+      }
+    }
+
     const { data: created, error } = await supabase
       .from('cards')
-      .insert({
-        deck_id: deckId,
-        card_number: newCard.card_number.trim(),
-        name: newCard.name.trim(),
-        meaning: newCard.meaning.trim() || null,
-        keywords: newCard.keywords.trim() || null,
-        one_line: newCard.one_line.trim() || null,
-        notes: newCard.notes.trim() || null,
-        image_feedback: newCard.image_feedback.trim() || null,
-        status: newCard.status,
-      })
+      .insert(insertData)
       .select()
       .single();
 
@@ -629,6 +668,7 @@ export default function DeckPage() {
       notes: '',
       image_feedback: '',
       status: 'todo',
+      read_request_by: null,
     });
     setShowAddCard(false);
     await fetchCards();
@@ -1016,6 +1056,43 @@ export default function DeckPage() {
                 </div>
               </div>
 
+              {/* 읽음요청 설정 */}
+              <div className="bg-gradient-to-r from-amber-50 to-blue-50 p-3.5 rounded-xl border border-amber-200 shadow-2xs">
+                <label className="block text-xs font-bold text-charcoal mb-1 flex items-center gap-1.5">
+                  <span>📢 읽음요청</span>
+                  <span className="text-[10px] font-normal text-charcoal-light">(등록 후 상대방에게 읽어달라고 알릴 경우 선택)</span>
+                </label>
+                <div className="flex gap-2 mt-2">
+                  <button
+                    type="button"
+                    onClick={() => setNewCard({ ...newCard, read_request_by: newCard.read_request_by === 'doyoung' ? null : 'doyoung' })}
+                    className={`flex-1 py-2 text-xs font-bold rounded-lg border transition-all ${
+                      newCard.read_request_by === 'doyoung'
+                        ? 'bg-amber-100 text-amber-900 border-amber-400 ring-2 ring-amber-300 shadow-xs'
+                        : 'bg-white text-charcoal-light border-beige-dark/50 hover:bg-beige'
+                    }`}
+                  >
+                    {newCard.read_request_by === 'doyoung' ? '✅ ' : '👤 '}점술신이 읽음 요청
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setNewCard({ ...newCard, read_request_by: newCard.read_request_by === 'hyojae' ? null : 'hyojae' })}
+                    className={`flex-1 py-2 text-xs font-bold rounded-lg border transition-all ${
+                      newCard.read_request_by === 'hyojae'
+                        ? 'bg-blue-100 text-blue-900 border-blue-400 ring-2 ring-blue-300 shadow-xs'
+                        : 'bg-white text-charcoal-light border-beige-dark/50 hover:bg-beige'
+                    }`}
+                  >
+                    {newCard.read_request_by === 'hyojae' ? '✅ ' : '👤 '}로율이 읽음 요청
+                  </button>
+                </div>
+                {newCard.read_request_by && (
+                  <p className="text-[11px] text-amber-800 mt-2 font-medium">
+                    ✨ 등록 시 목록에 <strong>&apos;📢 {newCard.read_request_by === 'doyoung' ? '점술신' : '로율'}이 읽음 요청함!&apos;</strong> 뱃지가 뜹니다.
+                  </p>
+                )}
+              </div>
+
               <div className="flex gap-2 pt-3">
                 <button
                   type="button"
@@ -1110,15 +1187,22 @@ export default function DeckPage() {
                       )}
                     </div>
 
-                    {/* 읽어주세요 뱃지 */}
-                    {(
-                      (card.notes_read_by_doyoung === false || card.notes_read_by_hyojae === false) ||
-                      (card.feedback_read_by_doyoung === false || card.feedback_read_by_hyojae === false)
-                    ) && (
-                      <span className="text-[10px] px-2.5 py-1 rounded-full font-bold bg-red-500 text-white shrink-0 animate-pulse shadow-sm">
-                        📢 읽어주세요!
-                      </span>
-                    )}
+                    {/* 읽어주세요 뱃지 (점술신 / 로율 구분) */}
+                    {(() => {
+                      const notice = getCardReadNotice(card);
+                      if (!notice) return null;
+                      const badgeColor =
+                        notice.requester === 'doyoung'
+                          ? 'bg-amber-600 text-white'
+                          : notice.requester === 'hyojae'
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-red-500 text-white';
+                      return (
+                        <span className={`text-[10px] px-2.5 py-1 rounded-full font-bold shrink-0 animate-pulse shadow-sm ${badgeColor}`}>
+                          {notice.label}
+                        </span>
+                      );
+                    })()}
 
                     {/* Status badge */}
                     <span
@@ -1140,6 +1224,36 @@ export default function DeckPage() {
                       {!isEditing ? (
                         /* VIEW MODE */
                         <div className="space-y-4">
+                          {/* 읽음요청 알림 및 확인 배너 */}
+                          {(() => {
+                            const notice = getCardReadNotice(card);
+                            if (!notice) return null;
+                            const requesterName =
+                              notice.requester === 'doyoung' ? '점술신' : notice.requester === 'hyojae' ? '로율' : '상대방';
+                            return (
+                              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3.5 bg-gradient-to-r from-amber-50 via-warm-white to-blue-50 border border-amber-300/80 rounded-2xl shadow-xs">
+                                <div className="flex items-center gap-2.5">
+                                  <span className="text-xl">📢</span>
+                                  <div>
+                                    <p className="text-xs font-bold text-charcoal">
+                                      {requesterName}이 읽음 요청을 남겼습니다!
+                                    </p>
+                                    <p className="text-[11px] text-charcoal-light">
+                                      수정된 설명을 확인하셨다면 읽음확인을 눌러주세요.
+                                    </p>
+                                  </div>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => handleReadConfirmAll(card.id)}
+                                  className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-bold rounded-xl shadow-xs transition-all shrink-0 flex items-center justify-center gap-1.5"
+                                >
+                                  <span>✅</span>
+                                  <span>읽음확인 완료</span>
+                                </button>
+                              </div>
+                            );
+                          })()}
                           {/* Meaning */}
                           {card.meaning && (
                             <div>
@@ -1324,17 +1438,25 @@ export default function DeckPage() {
 
                           </div>
 
-                          {/* 통합 읽음확인 체크박스 */}
-                          {(card.notes_read_by_doyoung === false || card.notes_read_by_hyojae === false || card.feedback_read_by_doyoung === false || card.feedback_read_by_hyojae === false) && (
-                            <label
-                              className="flex items-center gap-2 px-4 py-3 bg-emerald-50 border border-emerald-200 rounded-xl cursor-pointer hover:bg-emerald-100 transition-colors"
-                              onClick={() => handleReadConfirmAll(card.id)}
-                            >
-                              <span className="w-5 h-5 border-2 border-emerald-400 rounded flex items-center justify-center bg-white">
-                              </span>
-                              <span className="text-xs font-semibold text-emerald-700">읽음확인</span>
-                            </label>
-                          )}
+                          {/* 하단 읽음확인 버튼 */}
+                          {(() => {
+                            const notice = getCardReadNotice(card);
+                            if (!notice) return null;
+                            const requesterName =
+                              notice.requester === 'doyoung' ? '점술신' : notice.requester === 'hyojae' ? '로율' : '상대방';
+                            return (
+                              <button
+                                type="button"
+                                onClick={() => handleReadConfirmAll(card.id)}
+                                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 rounded-xl cursor-pointer transition-colors shadow-2xs text-emerald-800"
+                              >
+                                <span className="text-base">✅</span>
+                                <span className="text-xs font-bold">
+                                  {requesterName}의 읽음요청 확인 완료 (읽음 처리)
+                                </span>
+                              </button>
+                            );
+                          })()}
 
                           {/* Status quick toggle */}
                           <div>
@@ -1549,38 +1671,39 @@ export default function DeckPage() {
                             </div>
                           </div>
 
-                          {/* 읽음요청 - 저장 시 누가 수정했는지 선택 */}
-                          <div className="bg-gradient-to-r from-amber-50 to-blue-50 p-3 rounded-xl border border-amber-200/60">
-                            <label className="block text-[11px] font-bold text-charcoal mb-2">
-                              📢 읽음요청 (저장할 때 상대방에게 알림)
+                          {/* 읽음요청 - 저장 시 누가 요청하는지 선택 */}
+                          <div className="bg-gradient-to-r from-amber-50 to-blue-50 p-3.5 rounded-xl border border-amber-200 shadow-2xs">
+                            <label className="block text-xs font-bold text-charcoal mb-1 flex items-center gap-1.5">
+                              <span>📢 읽음요청</span>
+                              <span className="text-[10px] font-normal text-charcoal-light">(누가 수정한 뒤 상대방에게 읽어달라고 할지 선택)</span>
                             </label>
-                            <div className="flex gap-2">
+                            <div className="flex gap-2 mt-2">
                               <button
                                 type="button"
                                 onClick={() => setEditForm({ ...editForm, read_request_by: editForm.read_request_by === 'doyoung' ? null : 'doyoung' })}
-                                className={`flex-1 py-2 text-[11px] font-semibold rounded-lg border transition-colors ${
+                                className={`flex-1 py-2 text-xs font-bold rounded-lg border transition-all ${
                                   editForm.read_request_by === 'doyoung'
-                                    ? 'bg-amber-100 text-amber-900 border-amber-400 ring-2 ring-amber-300'
+                                    ? 'bg-amber-100 text-amber-900 border-amber-400 ring-2 ring-amber-300 shadow-xs'
                                     : 'bg-white text-charcoal-light border-beige-dark/50 hover:bg-beige'
                                 }`}
                               >
-                                {editForm.read_request_by === 'doyoung' ? '✅ ' : ''}점술신이 수정함
+                                {editForm.read_request_by === 'doyoung' ? '✅ ' : '👤 '}점술신이 읽음 요청
                               </button>
                               <button
                                 type="button"
                                 onClick={() => setEditForm({ ...editForm, read_request_by: editForm.read_request_by === 'hyojae' ? null : 'hyojae' })}
-                                className={`flex-1 py-2 text-[11px] font-semibold rounded-lg border transition-colors ${
+                                className={`flex-1 py-2 text-xs font-bold rounded-lg border transition-all ${
                                   editForm.read_request_by === 'hyojae'
-                                    ? 'bg-amber-100 text-amber-900 border-amber-400 ring-2 ring-amber-300'
+                                    ? 'bg-blue-100 text-blue-900 border-blue-400 ring-2 ring-blue-300 shadow-xs'
                                     : 'bg-white text-charcoal-light border-beige-dark/50 hover:bg-beige'
                                 }`}
                               >
-                                {editForm.read_request_by === 'hyojae' ? '✅ ' : ''}로율이 수정함
+                                {editForm.read_request_by === 'hyojae' ? '✅ ' : '👤 '}로율이 읽음 요청
                               </button>
                             </div>
                             {editForm.read_request_by && (
-                              <p className="text-[10px] text-amber-700 mt-1.5 font-medium">
-                                저장하면 카드 목록에 📢 읽어주세요! 표시가 뜹니다
+                              <p className="text-[11px] text-amber-800 mt-2 font-medium">
+                                ✨ 저장 시 목록에 <strong>&apos;📢 {editForm.read_request_by === 'doyoung' ? '점술신' : '로율'}이 읽음 요청함!&apos;</strong> 뱃지가 뜹니다.
                               </p>
                             )}
                           </div>
