@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
@@ -15,6 +15,7 @@ export default function CardDetailPage() {
   // Lightbox state for image zoom
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
+  const touchStartXRef = useRef<number | null>(null);
 
   const [deck, setDeck] = useState<Deck | null>(null);
   const [card, setCard] = useState<Card | null>(null);
@@ -411,20 +412,36 @@ export default function CardDetailPage() {
           if (allUrls.length === 0) return null;
           return (
             <div
-              className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm select-none"
               onClick={() => setLightboxOpen(false)}
+              onTouchStart={(e) => {
+                touchStartXRef.current = e.touches[0].clientX;
+              }}
+              onTouchEnd={(e) => {
+                if (touchStartXRef.current === null) return;
+                const touchEndX = e.changedTouches[0].clientX;
+                const diff = touchStartXRef.current - touchEndX;
+                if (Math.abs(diff) > 40 && allUrls.length > 1) {
+                  if (diff > 0) {
+                    setLightboxIndex((prev) => (prev + 1) % allUrls.length);
+                  } else {
+                    setLightboxIndex((prev) => (prev - 1 + allUrls.length) % allUrls.length);
+                  }
+                }
+                touchStartXRef.current = null;
+              }}
             >
               {/* Close button */}
               <button
                 onClick={() => setLightboxOpen(false)}
-                className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/20 hover:bg-white/40 text-white text-xl flex items-center justify-center transition-colors z-10"
+                className="absolute top-4 right-4 w-11 h-11 rounded-full bg-white/20 active:bg-white/40 hover:bg-white/30 text-white text-xl flex items-center justify-center transition-colors z-20 cursor-pointer"
               >
                 ✕
               </button>
 
               {/* Image counter */}
               {allUrls.length > 1 && (
-                <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-black/50 text-white text-sm px-3 py-1 rounded-full font-medium z-10">
+                <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-black/60 text-white text-xs px-3 py-1 rounded-full font-bold shadow-sm pointer-events-none z-10">
                   {lightboxIndex + 1} / {allUrls.length}
                 </div>
               )}
@@ -436,19 +453,23 @@ export default function CardDetailPage() {
                     e.stopPropagation();
                     setLightboxIndex((prev) => (prev - 1 + allUrls.length) % allUrls.length);
                   }}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/20 hover:bg-white/40 text-white text-xl flex items-center justify-center transition-colors z-10"
+                  className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/20 active:bg-white/40 hover:bg-white/30 text-white text-2xl flex items-center justify-center transition-colors z-10 cursor-pointer"
                 >
                   ‹
                 </button>
               )}
 
               {/* Image */}
-              <img
-                src={allUrls[lightboxIndex]}
-                alt={`${card.name} 확대`}
-                className="max-w-[90vw] max-h-[85vh] object-contain rounded-xl shadow-2xl"
+              <div
+                className="relative max-w-[94vw] max-h-[85vh] flex items-center justify-center"
                 onClick={(e) => e.stopPropagation()}
-              />
+              >
+                <img
+                  src={allUrls[lightboxIndex]}
+                  alt={`${card.name} 확대`}
+                  className="max-w-full max-h-[85vh] object-contain rounded-2xl shadow-2xl"
+                />
+              </div>
 
               {/* Next button */}
               {allUrls.length > 1 && (
@@ -457,10 +478,17 @@ export default function CardDetailPage() {
                     e.stopPropagation();
                     setLightboxIndex((prev) => (prev + 1) % allUrls.length);
                   }}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/20 hover:bg-white/40 text-white text-xl flex items-center justify-center transition-colors z-10"
+                  className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/20 active:bg-white/40 hover:bg-white/30 text-white text-2xl flex items-center justify-center transition-colors z-10 cursor-pointer"
                 >
                   ›
                 </button>
+              )}
+
+              {/* Mobile Swipe Hint */}
+              {allUrls.length > 1 && (
+                <div className="absolute bottom-5 left-1/2 -translate-x-1/2 bg-black/50 text-white/80 text-[11px] px-3 py-1 rounded-full pointer-events-none">
+                  👈 손가락으로 좌우 밀어 넘기기 👉
+                </div>
               )}
             </div>
           );

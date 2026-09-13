@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
@@ -215,6 +215,7 @@ export default function DeckPage() {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxUrls, setLightboxUrls] = useState<string[]>([]);
   const [lightboxIndex, setLightboxIndex] = useState(0);
+  const touchStartXRef = useRef<number | null>(null);
 
   // Gallery (총 작업물 모아보기) state
   const [galleryOpen, setGalleryOpen] = useState(false);
@@ -1235,20 +1236,39 @@ export default function DeckPage() {
                       const urls = [card.image_url, card.image_url_2, card.image_url_3];
                       const thumbIdx = card.thumbnail_index || 0;
                       const thumbUrl = urls[thumbIdx] || urls.find(Boolean);
-                      return thumbUrl;
-                    })() ? (
-                      <div className="w-9 h-9 rounded-lg overflow-hidden border border-brown/30 shadow-2xs shrink-0 bg-charcoal">
-                        <img src={(() => {
-                          const urls = [card.image_url, card.image_url_2, card.image_url_3];
-                          const thumbIdx = card.thumbnail_index || 0;
-                          return urls[thumbIdx] || urls.find(Boolean) || '';
-                        })()} alt={card.name} className="w-full h-full object-cover" />
-                      </div>
-                    ) : (
-                      <div className="w-9 h-9 rounded-lg bg-charcoal/10 border border-beige-dark/40 flex items-center justify-center shrink-0">
-                        <span className="text-charcoal-light/40 text-sm">✕</span>
-                      </div>
-                    )}
+                      const allCardUrls = urls.filter(Boolean) as string[];
+                      const initialIdx = thumbUrl ? allCardUrls.indexOf(thumbUrl) : 0;
+
+                      return thumbUrl ? (
+                        <div
+                          onClick={(e) => {
+                            e.stopPropagation(); // 카드 아코디언 펼침 방지하고 바로 확대
+                            setLightboxUrls(allCardUrls);
+                            setLightboxIndex(initialIdx >= 0 ? initialIdx : 0);
+                            setLightboxOpen(true);
+                          }}
+                          title="터치 시 카드 크게보기"
+                          className="relative group w-10 h-10 rounded-xl overflow-hidden border-2 border-brown/40 hover:border-gold shadow-2xs shrink-0 bg-charcoal cursor-pointer active:scale-90 transition-all"
+                        >
+                          <img
+                            src={thumbUrl}
+                            alt={card.name}
+                            className="w-full h-full object-cover"
+                          />
+                          <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 sm:flex hidden items-center justify-center transition-opacity">
+                            <span className="text-white text-xs">🔍</span>
+                          </div>
+                          {/* 모바일에서도 터치 가능함을 알리는 작은 돋보기 뱃지 */}
+                          <div className="absolute bottom-0 right-0 bg-black/60 text-white text-[8px] px-1 rounded-tl">
+                            🔍
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="w-10 h-10 rounded-xl bg-charcoal/10 border border-beige-dark/40 flex items-center justify-center shrink-0">
+                          <span className="text-charcoal-light/40 text-xs">✕</span>
+                        </div>
+                      );
+                    })()}
 
                     {/* Name & Quick keywords snippet */}
                     <div className="flex-1 min-w-0">
@@ -1966,26 +1986,47 @@ export default function DeckPage() {
       </div>
     )}
 
-    {/* Lightbox Modal */}
+    {/* Lightbox Modal (모바일 스와이프 및 확대 최적화) */}
     {lightboxOpen && lightboxUrls.length > 0 && (
       <div
-        className="fixed inset-0 z-[70] flex items-center justify-center bg-black/80 backdrop-blur-sm"
+        className="fixed inset-0 z-[70] flex items-center justify-center bg-black/85 backdrop-blur-sm select-none"
         onClick={() => setLightboxOpen(false)}
+        onTouchStart={(e) => {
+          touchStartXRef.current = e.touches[0].clientX;
+        }}
+        onTouchEnd={(e) => {
+          if (touchStartXRef.current === null) return;
+          const touchEndX = e.changedTouches[0].clientX;
+          const diff = touchStartXRef.current - touchEndX;
+          if (Math.abs(diff) > 40 && lightboxUrls.length > 1) {
+            if (diff > 0) {
+              // 왼쪽으로 밀기 -> 다음 이미지
+              setLightboxIndex((prev) => (prev + 1) % lightboxUrls.length);
+            } else {
+              // 오른쪽으로 밀기 -> 이전 이미지
+              setLightboxIndex((prev) => (prev - 1 + lightboxUrls.length) % lightboxUrls.length);
+            }
+          }
+          touchStartXRef.current = null;
+        }}
       >
         {/* Close button */}
         <button
           onClick={() => setLightboxOpen(false)}
-          className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/20 hover:bg-white/40 text-white text-xl flex items-center justify-center transition-colors z-10"
+          className="absolute top-4 right-4 w-11 h-11 rounded-full bg-white/20 active:bg-white/40 hover:bg-white/30 text-white text-xl flex items-center justify-center transition-colors z-20 cursor-pointer"
+          title="닫기 (ESC)"
         >
           ✕
         </button>
 
-        {/* Image counter */}
-        {lightboxUrls.length > 1 && (
-          <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-black/50 text-white text-sm px-3 py-1 rounded-full font-medium z-10">
-            {lightboxIndex + 1} / {lightboxUrls.length}
-          </div>
-        )}
+        {/* Image counter & guide */}
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 z-10 pointer-events-none">
+          {lightboxUrls.length > 1 && (
+            <div className="bg-black/60 text-white text-xs px-3 py-1 rounded-full font-bold shadow-sm">
+              {lightboxIndex + 1} / {lightboxUrls.length}
+            </div>
+          )}
+        </div>
 
         {/* Previous button */}
         {lightboxUrls.length > 1 && (
@@ -1994,19 +2035,23 @@ export default function DeckPage() {
               e.stopPropagation();
               setLightboxIndex((prev) => (prev - 1 + lightboxUrls.length) % lightboxUrls.length);
             }}
-            className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/20 hover:bg-white/40 text-white text-xl flex items-center justify-center transition-colors z-10"
+            className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/20 active:bg-white/40 hover:bg-white/30 text-white text-2xl flex items-center justify-center transition-colors z-10 cursor-pointer"
           >
             ‹
           </button>
         )}
 
         {/* Image */}
-        <img
-          src={lightboxUrls[lightboxIndex]}
-          alt="확대 이미지"
-          className="max-w-[90vw] max-h-[85vh] object-contain rounded-xl shadow-2xl"
+        <div
+          className="relative max-w-[94vw] max-h-[85vh] flex items-center justify-center"
           onClick={(e) => e.stopPropagation()}
-        />
+        >
+          <img
+            src={lightboxUrls[lightboxIndex]}
+            alt="확대 이미지"
+            className="max-w-full max-h-[85vh] object-contain rounded-2xl shadow-2xl"
+          />
+        </div>
 
         {/* Next button */}
         {lightboxUrls.length > 1 && (
@@ -2015,10 +2060,17 @@ export default function DeckPage() {
               e.stopPropagation();
               setLightboxIndex((prev) => (prev + 1) % lightboxUrls.length);
             }}
-            className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/20 hover:bg-white/40 text-white text-xl flex items-center justify-center transition-colors z-10"
+            className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/20 active:bg-white/40 hover:bg-white/30 text-white text-2xl flex items-center justify-center transition-colors z-10 cursor-pointer"
           >
             ›
           </button>
+        )}
+
+        {/* Mobile Swipe Hint */}
+        {lightboxUrls.length > 1 && (
+          <div className="absolute bottom-5 left-1/2 -translate-x-1/2 bg-black/50 text-white/80 text-[11px] px-3 py-1 rounded-full pointer-events-none">
+            👈 손가락으로 좌우 밀어 넘기기 👉
+          </div>
         )}
       </div>
     )}
