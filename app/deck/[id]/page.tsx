@@ -194,7 +194,7 @@ export default function DeckPage() {
     one_line: '',
     notes: '',
     image_feedback: '',
-    status: 'todo' as CardStatus,
+    status: 'working' as CardStatus,
     read_request_by: null as 'doyoung' | 'hyojae' | null,
   });
   const [creatingCard, setCreatingCard] = useState(false);
@@ -667,7 +667,7 @@ export default function DeckPage() {
       one_line: '',
       notes: '',
       image_feedback: '',
-      status: 'todo',
+      status: 'working',
       read_request_by: null,
     });
     setShowAddCard(false);
@@ -1036,17 +1036,15 @@ export default function DeckPage() {
               <div>
                 <label className="block text-[11px] font-semibold text-charcoal-light mb-1">작업 상태</label>
                 <div className="flex gap-2">
-                  {(['todo', 'working', 'done'] as CardStatus[]).map((s) => (
+                  {(['working', 'done'] as CardStatus[]).map((s) => (
                     <button
                       key={s}
                       type="button"
                       onClick={() => setNewCard({ ...newCard, status: s })}
                       className={`px-3 py-1.5 rounded-lg text-xs font-medium border ${newCard.status === s
-                          ? s === 'todo'
-                            ? 'bg-gray-200 text-gray-800 border-gray-400 font-bold'
-                            : s === 'working'
-                              ? 'bg-amber-100 text-amber-900 border-amber-400 font-bold'
-                              : 'bg-emerald-100 text-emerald-900 border-emerald-400 font-bold'
+                          ? s === 'working'
+                            ? 'bg-amber-100 text-amber-900 border-amber-400 font-bold'
+                            : 'bg-emerald-100 text-emerald-900 border-emerald-400 font-bold'
                           : 'bg-warm-white text-charcoal-light border-beige-dark/50'
                         }`}
                     >
@@ -1204,13 +1202,15 @@ export default function DeckPage() {
                       );
                     })()}
 
-                    {/* Status badge */}
-                    <span
-                      onClick={(e) => e.stopPropagation()}
-                      className={`text-[11px] px-2.5 py-1 rounded-full font-semibold shrink-0 ${STATUS_COLORS[card.status]}`}
-                    >
-                      {STATUS_LABELS[card.status]}
-                    </span>
+                    {/* Status badge: 작업중, 완료만 표시 (미작업은 표시 안 함) */}
+                    {(card.status === 'working' || card.status === 'done') && (
+                      <span
+                        onClick={(e) => e.stopPropagation()}
+                        className={`text-[11px] px-2.5 py-1 rounded-full font-semibold shrink-0 ${STATUS_COLORS[card.status]}`}
+                      >
+                        {STATUS_LABELS[card.status]}
+                      </span>
+                    )}
 
                     {/* Expand/Collapse Arrow */}
                     <span className="text-xs text-charcoal-light/60 shrink-0 ml-1 transition-transform duration-200">
@@ -1458,23 +1458,21 @@ export default function DeckPage() {
                             );
                           })()}
 
-                          {/* Status quick toggle */}
+                          {/* Status quick toggle: 작업중, 완료만 제공 */}
                           <div>
                             <h4 className="text-[11px] font-bold text-charcoal-light tracking-wider uppercase mb-1.5">
                               상태 변경
                             </h4>
                             <div className="flex gap-2">
-                              {(['todo', 'working', 'done'] as CardStatus[]).map((s) => (
+                              {(['working', 'done'] as CardStatus[]).map((s) => (
                                 <button
                                   key={s}
                                   type="button"
                                   onClick={() => handleQuickStatusChange(card, s)}
                                   className={`px-3 py-1 rounded-lg text-xs font-medium border transition-colors ${card.status === s
-                                      ? s === 'todo'
-                                        ? 'bg-gray-200 text-gray-800 border-gray-400 font-bold'
-                                        : s === 'working'
-                                          ? 'bg-amber-100 text-amber-900 border-amber-400 font-bold'
-                                          : 'bg-emerald-100 text-emerald-900 border-emerald-400 font-bold'
+                                      ? s === 'working'
+                                        ? 'bg-amber-100 text-amber-900 border-amber-400 font-bold'
+                                        : 'bg-emerald-100 text-emerald-900 border-emerald-400 font-bold'
                                       : 'bg-warm-white text-charcoal-light border-beige-dark/50 hover:bg-beige'
                                     }`}
                                 >
@@ -1651,17 +1649,15 @@ export default function DeckPage() {
                           <div>
                             <label className="block text-[11px] font-semibold text-charcoal-light mb-1">상태</label>
                             <div className="flex gap-2">
-                              {(['todo', 'working', 'done'] as CardStatus[]).map((s) => (
+                              {(['working', 'done'] as CardStatus[]).map((s) => (
                                 <button
                                   key={s}
                                   type="button"
                                   onClick={() => setEditForm({ ...editForm, status: s })}
                                   className={`px-3 py-1.5 rounded-lg text-xs font-medium border ${editForm.status === s
-                                      ? s === 'todo'
-                                        ? 'bg-gray-200 text-gray-800 border-gray-400 font-bold'
-                                        : s === 'working'
-                                          ? 'bg-amber-100 text-amber-900 border-amber-400 font-bold'
-                                          : 'bg-emerald-100 text-emerald-900 border-emerald-400 font-bold'
+                                      ? s === 'working'
+                                        ? 'bg-amber-100 text-amber-900 border-amber-400 font-bold'
+                                        : 'bg-emerald-100 text-emerald-900 border-emerald-400 font-bold'
                                       : 'bg-warm-white text-charcoal-light border-beige-dark/50'
                                     }`}
                                 >
