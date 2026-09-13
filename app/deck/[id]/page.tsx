@@ -101,6 +101,17 @@ function getCardReadNotice(card: Card): { requester: 'doyoung' | 'hyojae' | 'unk
   return { requester: 'unknown', label: '📢 읽어주세요!' };
 }
 
+interface GalleryItem {
+  id: string;
+  cardId: string;
+  cardNumber: string;
+  cardName: string;
+  status: CardStatus;
+  url: string;
+  slot: number;
+  isThumbnail: boolean;
+}
+
 export default function DeckPage() {
   const params = useParams();
   const deckId = params.id as string;
@@ -204,6 +215,82 @@ export default function DeckPage() {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxUrls, setLightboxUrls] = useState<string[]>([]);
   const [lightboxIndex, setLightboxIndex] = useState(0);
+
+  // Gallery (총 작업물 모아보기) state
+  const [galleryOpen, setGalleryOpen] = useState(false);
+  const [galleryFilter, setGalleryFilter] = useState<'all' | 'thumb' | 'done'>('all');
+
+  // Compute all uploaded images across all cards
+  const allGalleryItems = useMemo<GalleryItem[]>(() => {
+    const items: GalleryItem[] = [];
+    cards.forEach((card) => {
+      const urls = [card.image_url, card.image_url_2, card.image_url_3];
+      let effectiveThumbSlot = card.thumbnail_index ?? 0;
+      if (!urls[effectiveThumbSlot]) {
+        const firstSlot = urls.findIndex(Boolean);
+        if (firstSlot !== -1) effectiveThumbSlot = firstSlot;
+      }
+
+      urls.forEach((url, slot) => {
+        if (url) {
+          items.push({
+            id: `${card.id}_${slot}`,
+            cardId: card.id,
+            cardNumber: card.card_number,
+            cardName: card.name,
+            status: card.status,
+            url,
+            slot,
+            isThumbnail: effectiveThumbSlot === slot,
+          });
+        }
+      });
+    });
+    return items;
+  }, [cards]);
+
+  const filteredGalleryItems = useMemo(() => {
+    if (galleryFilter === 'thumb') {
+      return allGalleryItems.filter((item) => item.isThumbnail);
+    }
+    if (galleryFilter === 'done') {
+      return allGalleryItems.filter((item) => item.status === 'done');
+    }
+    return allGalleryItems;
+  }, [allGalleryItems, galleryFilter]);
+
+  const handleJumpToCard = (cardId: string) => {
+    setGalleryOpen(false);
+    setExpandedCardId(cardId);
+    setEditingCardId(null);
+    setTimeout(() => {
+      const el = document.getElementById(`card-${cardId}`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 150);
+  };
+
+  // Keyboard navigation for Lightbox and Gallery
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (lightboxOpen) {
+        if (e.key === 'Escape') {
+          setLightboxOpen(false);
+        } else if (e.key === 'ArrowLeft' && lightboxUrls.length > 1) {
+          setLightboxIndex((prev) => (prev - 1 + lightboxUrls.length) % lightboxUrls.length);
+        } else if (e.key === 'ArrowRight' && lightboxUrls.length > 1) {
+          setLightboxIndex((prev) => (prev + 1) % lightboxUrls.length);
+        }
+      } else if (galleryOpen) {
+        if (e.key === 'Escape') {
+          setGalleryOpen(false);
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [lightboxOpen, galleryOpen, lightboxUrls.length]);
 
   // Upload card image to specific slot (0, 1, 2)
   const handleUploadCardImage = async (cardId: string, file: File, slot: number = 0) => {
@@ -785,7 +872,7 @@ export default function DeckPage() {
               ← 메인으로
             </Link>
           </div>
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h1 className="text-2xl font-bold text-charcoal">
                 {deck.name}
@@ -795,15 +882,32 @@ export default function DeckPage() {
               </p>
             </div>
 
-            {/* TXT Export Button */}
-            <button
-              onClick={handleExportDeckTxt}
-              title="현재 덱의 모든 카드 정보를 TXT 파일로 다운로드합니다"
-              className="flex items-center gap-1.5 px-4 py-2 bg-beige border border-beige-dark/60 rounded-xl text-xs font-semibold text-charcoal hover:bg-beige-dark hover:shadow-xs transition-all shrink-0"
-            >
-              <span>📥</span>
-              <span>전체 카드 다운로드</span>
-            </button>
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* 총 작업물 모아보기 버튼 */}
+              <button
+                onClick={() => setGalleryOpen(true)}
+                title="지금까지 등록된 모든 카드 사진을 모아봅니다"
+                className="flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white rounded-xl text-xs font-bold shadow-xs hover:shadow transition-all shrink-0 active:scale-95 cursor-pointer"
+              >
+                <span>🖼️</span>
+                <span>총 작업물 모아보기</span>
+                {allGalleryItems.length > 0 && (
+                  <span className="bg-white/25 text-white text-[10px] px-1.5 py-0.2 rounded-full font-bold ml-0.5">
+                    {allGalleryItems.length}
+                  </span>
+                )}
+              </button>
+
+              {/* TXT Export Button */}
+              <button
+                onClick={handleExportDeckTxt}
+                title="현재 덱의 모든 카드 정보를 TXT 파일로 다운로드합니다"
+                className="flex items-center gap-1.5 px-4 py-2 bg-beige border border-beige-dark/60 rounded-xl text-xs font-semibold text-charcoal hover:bg-beige-dark hover:shadow-xs transition-all shrink-0 cursor-pointer"
+              >
+                <span>📥</span>
+                <span>전체 카드 다운로드</span>
+              </button>
+            </div>
           </div>
         </div>
       </header>
@@ -1115,6 +1219,7 @@ export default function DeckPage() {
               return (
                 <div
                   key={card.id}
+                  id={`card-${card.id}`}
                   className={`bg-warm-white border rounded-2xl transition-all duration-200 overflow-hidden ${isExpanded
                       ? 'border-brown/50 shadow-md ring-1 ring-brown/20'
                       : 'border-beige-dark/40 hover:border-brown/30 shadow-xs'
@@ -1704,10 +1809,167 @@ export default function DeckPage() {
       </div>
     </main>
 
+    {/* 🖼️ Total Artwork Gallery Modal (총 작업물 모아보기) */}
+    {galleryOpen && (
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-3 sm:p-6 animate-in fade-in duration-200"
+        onClick={() => setGalleryOpen(false)}
+      >
+        <div
+          className="bg-[#FAF7F2] border border-[#E8DCCF] rounded-3xl w-full max-w-5xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Gallery Header */}
+          <div className="px-5 py-4 sm:px-6 sm:py-5 border-b border-beige-dark/30 bg-warm-white flex items-center justify-between gap-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xl">🖼️</span>
+                <h2 className="text-base sm:text-lg font-serif font-bold text-charcoal">
+                  총 작업물 모아보기
+                </h2>
+                <span className="text-xs font-bold text-amber-800 bg-amber-100 border border-amber-300 px-2.5 py-0.5 rounded-full shadow-2xs">
+                  {allGalleryItems.length}장의 사진
+                </span>
+              </div>
+              <p className="text-[11px] sm:text-xs text-charcoal-light mt-0.5">
+                {deck.name}에 지금까지 등록된 모든 일러스트입니다. 사진을 누르면 고화질로 크게 볼 수 있어요!
+              </p>
+            </div>
+
+            <button
+              onClick={() => setGalleryOpen(false)}
+              className="w-9 h-9 rounded-full bg-beige hover:bg-beige-dark/60 text-charcoal font-bold text-sm flex items-center justify-center transition-colors shrink-0"
+              title="닫기 (ESC)"
+            >
+              ✕
+            </button>
+          </div>
+
+          {/* Filter Bar */}
+          <div className="px-5 py-2.5 sm:px-6 bg-[#F5EFE6] border-b border-beige-dark/20 flex items-center gap-2 overflow-x-auto">
+            <button
+              type="button"
+              onClick={() => setGalleryFilter('all')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all shrink-0 cursor-pointer ${
+                galleryFilter === 'all'
+                  ? 'bg-charcoal text-ivory shadow-xs'
+                  : 'bg-warm-white text-charcoal-light hover:bg-beige border border-beige-dark/40'
+              }`}
+            >
+              전체 사진 ({allGalleryItems.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setGalleryFilter('thumb')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all shrink-0 cursor-pointer ${
+                galleryFilter === 'thumb'
+                  ? 'bg-amber-600 text-white shadow-xs'
+                  : 'bg-warm-white text-charcoal-light hover:bg-beige border border-beige-dark/40'
+              }`}
+            >
+              ⭐ 대표 사진만 ({allGalleryItems.filter((i) => i.isThumbnail).length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setGalleryFilter('done')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all shrink-0 cursor-pointer ${
+                galleryFilter === 'done'
+                  ? 'bg-emerald-700 text-white shadow-xs'
+                  : 'bg-warm-white text-charcoal-light hover:bg-beige border border-beige-dark/40'
+              }`}
+            >
+              🎉 완료된 카드 ({allGalleryItems.filter((i) => i.status === 'done').length})
+            </button>
+          </div>
+
+          {/* Gallery Grid */}
+          <div className="p-4 sm:p-6 overflow-y-auto flex-1 chat-scroll">
+            {filteredGalleryItems.length === 0 ? (
+              <div className="text-center py-20">
+                <span className="text-4xl block mb-2">🎨</span>
+                <p className="text-sm font-semibold text-charcoal">해당하는 사진이 없습니다</p>
+                <p className="text-xs text-charcoal-light mt-1">카드에 이미지를 업로드해보세요!</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
+                {filteredGalleryItems.map((item, idx) => (
+                  <div
+                    key={item.id}
+                    className="bg-white rounded-2xl border border-beige-dark/40 overflow-hidden shadow-2xs hover:shadow-md transition-all flex flex-col group"
+                  >
+                    {/* Thumbnail click to open lightbox */}
+                    <div
+                      className="relative aspect-[2/3] bg-charcoal/5 cursor-pointer overflow-hidden"
+                      onClick={() => {
+                        const urls = filteredGalleryItems.map((i) => i.url);
+                        setLightboxUrls(urls);
+                        setLightboxIndex(idx);
+                        setLightboxOpen(true);
+                      }}
+                    >
+                      <img
+                        src={item.url}
+                        alt={item.cardName}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        loading="lazy"
+                      />
+                      <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <span className="bg-black/60 text-white text-[11px] px-2.5 py-1 rounded-full font-medium flex items-center gap-1 shadow-sm">
+                          🔍 크게보기
+                        </span>
+                      </div>
+
+                      {/* Top Badges */}
+                      <div className="absolute top-1.5 left-1.5 right-1.5 flex items-center justify-between pointer-events-none gap-1">
+                        {item.cardNumber && (
+                          <span className="text-[10px] font-mono font-bold bg-black/65 text-white px-1.5 py-0.5 rounded shadow-xs">
+                            #{item.cardNumber}
+                          </span>
+                        )}
+                        <div className="flex items-center gap-1 ml-auto">
+                          {item.isThumbnail && (
+                            <span className="text-[9px] font-bold bg-gold text-white px-1.5 py-0.5 rounded shadow-xs">
+                              ⭐
+                            </span>
+                          )}
+                          <span
+                            className={`text-[9px] font-bold px-1.5 py-0.5 rounded shadow-xs ${
+                              item.status === 'done' ? 'bg-emerald-600 text-white' : 'bg-amber-500 text-white'
+                            }`}
+                          >
+                            {item.status === 'done' ? '완료' : '작업중'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Bottom Info Bar */}
+                    <div className="px-2.5 py-2 bg-warm-white border-t border-beige-dark/20 flex items-center justify-between gap-1">
+                      <span className="text-xs font-bold text-charcoal truncate" title={item.cardName}>
+                        {item.cardName}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleJumpToCard(item.cardId)}
+                        className="text-[10px] font-semibold text-brown hover:text-brown-dark hover:underline shrink-0 cursor-pointer"
+                        title="해당 카드로 이동"
+                      >
+                        카드 보기 ›
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    )}
+
     {/* Lightbox Modal */}
     {lightboxOpen && lightboxUrls.length > 0 && (
       <div
-        className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
+        className="fixed inset-0 z-[70] flex items-center justify-center bg-black/80 backdrop-blur-sm"
         onClick={() => setLightboxOpen(false)}
       >
         {/* Close button */}
