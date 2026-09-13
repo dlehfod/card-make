@@ -138,6 +138,16 @@ export default function ChatBoard() {
     };
   }, []);
 
+  const scrollToBottom = useCallback((smooth = false) => {
+    if (chatContainerRef.current) {
+      const container = chatContainerRef.current;
+      container.scrollTo({
+        top: container.scrollHeight,
+        behavior: smooth ? 'smooth' : 'auto',
+      });
+    }
+  }, []);
+
   // Calculate unread count for current user
   useEffect(() => {
     if (!currentUser) {
@@ -150,13 +160,18 @@ export default function ChatBoard() {
     setUnreadCount(count);
   }, [messages, currentUser]);
 
-  // Auto-scroll to bottom when new messages arrive (within chat container only)
+  // Auto-scroll to bottom when entering chat, opening chat, or when new messages arrive
   useEffect(() => {
-    if (isOpen && chatContainerRef.current) {
-      const container = chatContainerRef.current;
-      container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
+    if (isOpen && currentUser && !loading) {
+      // 즉시 맨 밑으로 이동
+      scrollToBottom(false);
+      // DOM 및 레이아웃 렌더링 완료 후 확실하게 한 번 더 스크롤 보정
+      const timer = setTimeout(() => {
+        scrollToBottom(false);
+      }, 60);
+      return () => clearTimeout(timer);
     }
-  }, [messages, isOpen]);
+  }, [messages, isOpen, currentUser, loading, scrollToBottom]);
 
   // Mark messages as read when chat is open
   const markAsRead = useCallback(async () => {
@@ -518,6 +533,7 @@ export default function ChatBoard() {
                                 <img
                                   src={msg.image_url}
                                   alt="첨부 사진"
+                                  onLoad={() => scrollToBottom(false)}
                                   onClick={() => setViewImageUrl(msg.image_url)}
                                   className="max-w-[200px] max-h-[240px] rounded-2xl border border-beige-dark/40 object-cover shadow-xs cursor-pointer hover:opacity-90 transition-opacity"
                                 />
