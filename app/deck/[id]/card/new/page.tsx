@@ -300,30 +300,6 @@ export default function NewCardPage() {
             />
           </div>
 
-          {/* Status: 작업중, 완료만 제공 */}
-          <div>
-            <label className="block text-xs font-semibold text-charcoal-light uppercase tracking-widest mb-2">
-              상태
-            </label>
-            <div className="flex gap-2">
-              {(['working', 'done'] as CardStatus[]).map((s) => (
-                <button
-                  key={s}
-                  onClick={() => setStatus(s)}
-                  className={`px-4 py-2.5 rounded-xl text-sm font-medium border ${
-                    status === s
-                      ? s === 'working'
-                        ? 'bg-amber-100 text-amber-800 border-amber-400'
-                        : 'bg-emerald-100 text-emerald-800 border-emerald-400'
-                      : 'bg-warm-white text-charcoal-light border-beige-dark/50 hover:bg-beige'
-                  }`}
-                >
-                  {STATUS_LABELS[s]}
-                </button>
-              ))}
-            </div>
-          </div>
-
           {/* Save / Cancel */}
           <div className="flex gap-3 pt-4">
             <Link

@@ -1033,27 +1033,6 @@ export default function DeckPage() {
                 />
               </div>
 
-              <div>
-                <label className="block text-[11px] font-semibold text-charcoal-light mb-1">작업 상태</label>
-                <div className="flex gap-2">
-                  {(['working', 'done'] as CardStatus[]).map((s) => (
-                    <button
-                      key={s}
-                      type="button"
-                      onClick={() => setNewCard({ ...newCard, status: s })}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-medium border ${newCard.status === s
-                          ? s === 'working'
-                            ? 'bg-amber-100 text-amber-900 border-amber-400 font-bold'
-                            : 'bg-emerald-100 text-emerald-900 border-emerald-400 font-bold'
-                          : 'bg-warm-white text-charcoal-light border-beige-dark/50'
-                        }`}
-                    >
-                      {STATUS_LABELS[s]}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
               {/* 읽음요청 설정 */}
               <div className="bg-gradient-to-r from-amber-50 to-blue-50 p-3.5 rounded-xl border border-amber-200 shadow-2xs">
                 <label className="block text-xs font-bold text-charcoal mb-1 flex items-center gap-1.5">
@@ -1202,15 +1181,15 @@ export default function DeckPage() {
                       );
                     })()}
 
-                    {/* Status badge: 작업중, 완료만 표시 (미작업은 표시 안 함) */}
-                    {(card.status === 'working' || card.status === 'done') && (
-                      <span
-                        onClick={(e) => e.stopPropagation()}
-                        className={`text-[11px] px-2.5 py-1 rounded-full font-semibold shrink-0 ${STATUS_COLORS[card.status]}`}
-                      >
-                        {STATUS_LABELS[card.status]}
-                      </span>
-                    )}
+                    {/* Status badge: 완료체크 안 한 건 다 자동으로 작업중, 완료 체크한 건 완료 */}
+                    <span
+                      onClick={(e) => e.stopPropagation()}
+                      className={`text-[11px] px-2.5 py-1 rounded-full font-semibold shrink-0 ${
+                        card.status === 'done' ? STATUS_COLORS.done : STATUS_COLORS.working
+                      }`}
+                    >
+                      {card.status === 'done' ? '완료' : '작업중'}
+                    </span>
 
                     {/* Expand/Collapse Arrow */}
                     <span className="text-xs text-charcoal-light/60 shrink-0 ml-1 transition-transform duration-200">
@@ -1458,28 +1437,26 @@ export default function DeckPage() {
                             );
                           })()}
 
-                          {/* Status quick toggle: 작업중, 완료만 제공 */}
+                          {/* 상태 변경: 완료 여부만 원클릭 체크/해제 */}
                           <div>
-                            <h4 className="text-[11px] font-bold text-charcoal-light tracking-wider uppercase mb-1.5">
-                              상태 변경
-                            </h4>
-                            <div className="flex gap-2">
-                              {(['working', 'done'] as CardStatus[]).map((s) => (
-                                <button
-                                  key={s}
-                                  type="button"
-                                  onClick={() => handleQuickStatusChange(card, s)}
-                                  className={`px-3 py-1 rounded-lg text-xs font-medium border transition-colors ${card.status === s
-                                      ? s === 'working'
-                                        ? 'bg-amber-100 text-amber-900 border-amber-400 font-bold'
-                                        : 'bg-emerald-100 text-emerald-900 border-emerald-400 font-bold'
-                                      : 'bg-warm-white text-charcoal-light border-beige-dark/50 hover:bg-beige'
-                                    }`}
-                                >
-                                  {STATUS_LABELS[s]}
-                                </button>
-                              ))}
-                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleQuickStatusChange(card, card.status === 'done' ? 'working' : 'done')}
+                              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold border transition-all ${
+                                card.status === 'done'
+                                  ? 'bg-emerald-100 text-emerald-800 border-emerald-400 shadow-2xs hover:bg-emerald-200/70'
+                                  : 'bg-white text-charcoal border-beige-dark/60 hover:border-emerald-400 hover:text-emerald-700 hover:bg-emerald-50/40 shadow-2xs'
+                              }`}
+                            >
+                              <span className={`w-4 h-4 rounded border flex items-center justify-center text-[10px] ${
+                                card.status === 'done' ? 'bg-emerald-600 border-emerald-600 text-white font-bold' : 'border-gray-400 bg-white'
+                              }`}>
+                                {card.status === 'done' ? '✓' : ''}
+                              </span>
+                              <span>
+                                {card.status === 'done' ? '🎉 작업 완료됨 (클릭 시 다시 작업중으로 변경)' : '작업 완료 체크하기'}
+                              </span>
+                            </button>
                           </div>
 
                           {/* Action Buttons: Edit & Delete */}
@@ -1646,25 +1623,19 @@ export default function DeckPage() {
                             />
                           </div>
 
+                          {/* 상태: 작업중 고르는 것 없이 완료 여부만 체크 */}
                           <div>
-                            <label className="block text-[11px] font-semibold text-charcoal-light mb-1">상태</label>
-                            <div className="flex gap-2">
-                              {(['working', 'done'] as CardStatus[]).map((s) => (
-                                <button
-                                  key={s}
-                                  type="button"
-                                  onClick={() => setEditForm({ ...editForm, status: s })}
-                                  className={`px-3 py-1.5 rounded-lg text-xs font-medium border ${editForm.status === s
-                                      ? s === 'working'
-                                        ? 'bg-amber-100 text-amber-900 border-amber-400 font-bold'
-                                        : 'bg-emerald-100 text-emerald-900 border-emerald-400 font-bold'
-                                      : 'bg-warm-white text-charcoal-light border-beige-dark/50'
-                                    }`}
-                                >
-                                  {STATUS_LABELS[s]}
-                                </button>
-                              ))}
-                            </div>
+                            <label className="inline-flex items-center gap-2 cursor-pointer select-none px-3.5 py-2 rounded-xl border border-beige-dark/50 bg-white hover:bg-emerald-50/40 transition-colors shadow-2xs">
+                              <input
+                                type="checkbox"
+                                checked={editForm.status === 'done'}
+                                onChange={(e) => setEditForm({ ...editForm, status: e.target.checked ? 'done' : 'working' })}
+                                className="w-4 h-4 text-emerald-600 rounded border-gray-300 focus:ring-emerald-500 cursor-pointer"
+                              />
+                              <span className="text-xs font-bold text-charcoal">
+                                {editForm.status === 'done' ? '🎉 작업 완료됨' : '작업중 (완료 시 체크)'}
+                              </span>
+                            </label>
                           </div>
 
                           {/* 읽음요청 - 저장 시 누가 요청하는지 선택 */}

@@ -377,17 +377,15 @@ export default function CardDetailPage() {
               </div>
             )}
 
-            {/* Status: 작업중, 완료만 표시 */}
-            {(card.status === 'working' || card.status === 'done') && (
-              <div>
-                <h3 className="text-xs font-semibold text-charcoal-light uppercase tracking-widest mb-2">
-                  상태
-                </h3>
-                <span className={`inline-block text-sm px-3 py-1.5 rounded-full font-medium ${STATUS_COLORS[card.status]}`}>
-                  {STATUS_LABELS[card.status]}
-                </span>
-              </div>
-            )}
+            {/* Status: 완료체크 안 한 것은 다 작업중 */}
+            <div>
+              <h3 className="text-xs font-semibold text-charcoal-light uppercase tracking-widest mb-2">
+                상태
+              </h3>
+              <span className={`inline-block text-sm px-3 py-1.5 rounded-full font-medium ${card.status === 'done' ? STATUS_COLORS.done : STATUS_COLORS.working}`}>
+                {card.status === 'done' ? '완료' : '작업중'}
+              </span>
+            </div>
 
             {/* Actions */}
             <div className="flex gap-3 pt-4 border-t border-beige-dark/30">
@@ -608,28 +606,19 @@ export default function CardDetailPage() {
             />
           </div>
 
-          {/* Status: 작업중, 완료만 제공 */}
+          {/* Status: 완료 여부만 체크 */}
           <div>
-            <label className="block text-xs font-semibold text-charcoal-light uppercase tracking-widest mb-2">
-              상태
+            <label className="inline-flex items-center gap-2.5 cursor-pointer select-none px-4 py-2.5 rounded-xl border border-beige-dark/50 bg-white hover:bg-emerald-50/40 transition-colors shadow-2xs">
+              <input
+                type="checkbox"
+                checked={editStatus === 'done'}
+                onChange={(e) => setEditStatus(e.target.checked ? 'done' : 'working')}
+                className="w-4 h-4 text-emerald-600 rounded border-gray-300 focus:ring-emerald-500 cursor-pointer"
+              />
+              <span className="text-sm font-bold text-charcoal">
+                {editStatus === 'done' ? '🎉 작업 완료됨' : '작업중 (완료 시 체크)'}
+              </span>
             </label>
-            <div className="flex gap-2">
-              {(['working', 'done'] as CardStatus[]).map((s) => (
-                <button
-                  key={s}
-                  onClick={() => setEditStatus(s)}
-                  className={`px-4 py-2.5 rounded-xl text-sm font-medium border ${
-                    editStatus === s
-                      ? s === 'working'
-                        ? 'bg-amber-100 text-amber-800 border-amber-400'
-                        : 'bg-emerald-100 text-emerald-800 border-emerald-400'
-                      : 'bg-warm-white text-charcoal-light border-beige-dark/50 hover:bg-beige'
-                  }`}
-                >
-                  {STATUS_LABELS[s]}
-                </button>
-              ))}
-            </div>
           </div>
 
           {/* Save / Cancel */}
